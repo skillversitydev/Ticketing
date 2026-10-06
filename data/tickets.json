@@ -1,14 +1,17 @@
 [
   {
-    "ticketId": "TK-2026-1003",
-    "date": "21/9/2026, 4:55:11 pm",
-    "createdAt": "2026-09-21T11:25:12.010Z",
-    "userName": "TEST",
-    "userEmail": "TEST@GMAIL.COM",
-    "department": "IT Support",
-    "category": "IT Hardware & Devices",
-    "subject": "TEST",
-    "description": "TEST",
+    "ticketId": "TK-2026-1004",
+    "date": "6/10/2026, 12:34:17 pm",
+    "createdAt": "2026-10-06T07:04:17.405Z",
+    "userName": "Test Employee",
+    "userEmail": "employee@skillversity.org",
+    "userPhone": "",
+    "contactNumber": "",
+    "department": "IT OPERATIONS",
+    "category": "Software & Applications",
+    "subCategory": "General Issue",
+    "subject": "Login issue with portal",
+    "description": "Unable to log into portal software.",
     "impact": "Medium",
     "urgency": "Medium",
     "priority": "Medium",
@@ -16,31 +19,48 @@
     "assignedTo": "Unassigned",
     "vendorTicketRef": "",
     "troubleshootingNotes": "",
-    "attachments": [
-      {
-        "filename": "files-1789989911879-247601449.png",
-        "originalName": "Screenshot 2026-02-23 101509.png",
-        "mimeType": "image/png",
-        "size": 113243,
-        "url": "http://localhost:3000/uploads/TK-2026-1003/files-1789989911879-247601449.png",
-        "uploadedAt": "2026-09-21T11:25:12.009Z"
-      }
-    ],
+    "attachments": [],
     "userConfirmed": false,
     "auditTrail": [
       {
-        "timestamp": "2026-09-21T11:25:12.010Z",
-        "updatedBy": "TEST",
+        "timestamp": "2026-10-06T07:04:17.405Z",
+        "updatedBy": "Test Employee",
         "changes": [
           "Ticket Created"
         ]
-      },
-      {
-        "timestamp": "2026-09-21T11:28:29.091Z",
-        "updatedBy": "Skillversity IT Admin",
-        "changes": []
       }
-    ],
-    "lastUpdated": "21/9/2026, 4:58:29 pm"
+    ]
+  },
+  {
+    "ticketId": "TK-2026-1002",
+    "date": "6/10/2026, 12:27:48 pm",
+    "createdAt": "2026-10-06T06:57:48.473Z",
+    "userName": "Test User",
+    "userEmail": "test@example.com",
+    "userPhone": "",
+    "contactNumber": "",
+    "department": "IT OPERATIONS",
+    "category": "Software & Applications",
+    "subCategory": "General Issue",
+    "subject": "Test Subject",
+    "description": "Test Description",
+    "impact": "Medium",
+    "urgency": "Medium",
+    "priority": "Medium",
+    "status": "Open",
+    "assignedTo": "Unassigned",
+    "vendorTicketRef": "",
+    "troubleshootingNotes": "",
+    "attachments": [],
+    "userConfirmed": false,
+    "auditTrail": [
+      {
+        "timestamp": "2026-10-06T06:57:48.473Z",
+        "updatedBy": "Test User",
+        "changes": [
+          "Ticket Created"
+        ]
+      }
+    ]
   }
 ]

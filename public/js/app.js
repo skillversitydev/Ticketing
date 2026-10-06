@@ -811,12 +811,17 @@ async function loadUsers() {
 async function syncUsersToSheet() {
   const syncBtn = document.getElementById('btn-sync-users-modal');
   const originalText = syncBtn ? syncBtn.innerHTML : '📊 Sync with Sheet';
+
+  const token = localStorage.getItem('skillversity_token');
+  if (!token) {
+    showToast('Authentication required. Please log in as Admin first.', 'error');
+    return;
+  }
+
   if (syncBtn) {
     syncBtn.disabled = true;
     syncBtn.innerHTML = 'Syncing... ⏳';
   }
-
-  const token = localStorage.getItem('skillversity_token');
 
   try {
     const res = await fetch('/api/users/sync-sheet', {
@@ -826,11 +831,18 @@ async function syncUsersToSheet() {
         'Content-Type': 'application/json'
       }
     });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(res.status === 401 ? 'Session expired. Please log in again.' : 'Server returned non-JSON response.');
+    }
+
     const data = await res.json();
-    if (data.success) {
-      showToast(data.message || 'Users synced to Google Sheet successfully!', 'success');
+    if (res.ok && data.success) {
+      const detail = data.result && data.result.message ? ` (${data.result.message})` : '';
+      showToast((data.message || 'Users synced to Google Sheet successfully!') + detail, 'success');
     } else {
-      showToast('User sync failed: ' + (data.message || data.error), 'error');
+      showToast('User sync failed: ' + (data.message || data.error || 'Unknown error'), 'error');
     }
   } catch (err) {
     showToast('Error syncing users to sheet: ' + err.message, 'error');

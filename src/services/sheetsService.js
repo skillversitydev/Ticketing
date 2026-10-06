@@ -26,7 +26,7 @@ class SheetsService {
           targetEmail: config.targetEmail
         }, {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 10000
+          timeout: 25000
         });
 
         if (response.data && (response.data.success || response.status === 200)) {
@@ -104,7 +104,7 @@ class SheetsService {
           action: 'UPDATE',
           ticketId,
           ...updateData
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: 'Google Sheet update sent via Apps Script' };
       } catch (err) {
         console.warn('Apps Script update error:', err.message);
@@ -119,7 +119,7 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'DELETE',
           ticketId
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: 'Google Sheet deletion sent via Apps Script' };
       } catch (err) {
         console.warn('Apps Script delete error:', err.message);
@@ -133,7 +133,7 @@ class SheetsService {
       try {
         const response = await axios.post(config.googleAppsScriptUrl, {
           action: 'SETUP_HEADERS'
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: response.data ? response.data.message : 'Headers synced with Google Sheet' };
       } catch (err) {
         return { success: false, message: 'Failed to sync headers: ' + err.message };
@@ -150,7 +150,7 @@ class SheetsService {
       const response = await axios.post(config.googleAppsScriptUrl, {
         action: 'SYNC_TICKETS',
         tickets
-      }, { timeout: 10000 });
+      }, { timeout: 25000 });
 
       return {
         success: true,
@@ -172,7 +172,7 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'CREATE_USER',
           ...user
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: 'User synced to Google Sheet (Users tab)' };
       } catch (err) {
         console.warn('Apps Script user sync error:', err.message);
@@ -187,7 +187,7 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'UPDATE_USER',
           ...user
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: 'User update synced to Google Sheet (Users tab)' };
       } catch (err) {
         console.warn('Apps Script user update error:', err.message);
@@ -203,7 +203,7 @@ class SheetsService {
           action: 'DELETE_USER',
           username,
           id: userId
-        }, { timeout: 10000 });
+        }, { timeout: 25000 });
         return { success: true, message: 'User deletion synced to Google Sheet' };
       } catch (err) {
         console.warn('Apps Script user delete error:', err.message);
@@ -220,7 +220,7 @@ class SheetsService {
       const response = await axios.post(config.googleAppsScriptUrl, {
         action: 'SYNC_USERS',
         users
-      }, { timeout: 10000 });
+      }, { timeout: 25000 });
       return {
         success: true,
         message: response.data ? response.data.message : `Synced ${users.length} users to Google Sheet`,
