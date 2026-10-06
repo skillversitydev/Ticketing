@@ -180,6 +180,27 @@ async function runTests() {
 
     console.log(`✅ TEST 7 PASSED: Ticket Sequence counter reset ('${resetPreview}') and sequential increment ('${nextIdPreview}') verified cleanly.`);
 
+    // Test 8: Verifying Duplicate Ticket ID Auto-Advancement & Prevention
+    console.log('TEST 8: Verifying Duplicate Ticket ID Auto-Advancement & Prevention...');
+    storageService.saveTicket({
+      ticketId: `TK-${currentYear}-1001`,
+      date: new Date().toLocaleString(),
+      userName: 'Existing User',
+      subject: 'Existing ticket 1001',
+      description: 'Test ticket 1001'
+    });
+
+    // Reset sequence to 1 manually to simulate lower settings sequence
+    settingsService.updateSettings({ nextTicketSequence: 1 });
+
+    // getNextTicketId must auto-advance beyond 1001 to 1002
+    const deduplicatedNextId = settingsService.getNextTicketId();
+    assert.strictEqual(deduplicatedNextId, `TK-${currentYear}-1002`, 'Duplicate ticket prevention failed to auto-advance to 1002');
+
+    // Clean up test ticket
+    storageService.deleteTicket(`TK-${currentYear}-1001`);
+    console.log(`✅ TEST 8 PASSED: Duplicate ticket prevention successfully auto-advanced from TK-${currentYear}-1001 to '${deduplicatedNextId}'.`);
+
     console.log('--------------------------------------------------');
     console.log('🎉 ALL SYSTEM VERIFICATION TESTS PASSED SUCCESSFULLY!');
     console.log('--------------------------------------------------');

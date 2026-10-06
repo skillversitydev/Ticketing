@@ -74,7 +74,33 @@ class SettingsService {
 
   getNextTicketId() {
     const settings = this.loadSettings(true);
-    const seq = Number(settings.nextTicketSequence) || 1;
+    let seq = Number(settings.nextTicketSequence) || 1;
+
+    try {
+      const storageService = require('./storageService');
+      const existingTickets = storageService.getAllTickets() || [];
+      let maxExistingSeq = 0;
+
+      existingTickets.forEach(t => {
+        if (t && t.ticketId) {
+          const match = t.ticketId.match(/(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxExistingSeq) {
+              maxExistingSeq = num;
+            }
+          }
+        }
+      });
+
+      if (maxExistingSeq >= seq) {
+        seq = maxExistingSeq + 1;
+        this.updateSettings({ nextTicketSequence: seq });
+      }
+    } catch (err) {
+      console.warn('Deduplication check warning in getNextTicketId:', err.message);
+    }
+
     const year = new Date().getFullYear();
     const seqStr = String(seq).padStart(3, '0');
     return `TK-${year}-${seqStr}`;
@@ -88,6 +114,23 @@ class SettingsService {
       this.updateSettings({ nextTicketSequence: currentNum + 1 });
     }
     return ticketId;
+  }
+
+  async getNextTicketIdAsync() {
+    try {
+      const storageService = require('./storageService');
+      const existing = storageService.getAllTickets() || [];
+      if (existing.length === 0 && config.googleAppsScriptUrl) {
+        const sheetsService = require('./sheetsService');
+        const sheetData = await sheetsService.fetchAllFromSheet();
+        if (sheetData && sheetData.success && Array.isArray(sheetData.tickets) && sheetData.tickets.length > 0) {
+          storageService.mergeTicketsFromSheet(sheetData.tickets);
+        }
+      }
+    } catch (e) {
+      console.warn('Sheets fetch warning in getNextTicketIdAsync:', e.message);
+    }
+    return this.getNextTicketId();
   }
 
   resetTicketSequence(startValue = 1) {

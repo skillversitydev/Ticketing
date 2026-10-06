@@ -1102,6 +1102,89 @@ async function syncAndLookupTicket() {
   lookupTicket();
 }
 
+// Log New Ticket from Dashboard Modal
+async function openCreateTicketModal() {
+  const form = document.getElementById('dashCreateTicketForm');
+  if (form) form.reset();
+
+  const idBadge = document.getElementById('dash-create-ticket-id');
+  if (idBadge) idBadge.textContent = 'Fetching Ticket ID...';
+
+  openModal('createTicketModal');
+
+  try {
+    const res = await fetch(`/api/complaints/next-id?_t=${Date.now()}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (data.success && data.nextTicketId) {
+      if (idBadge) idBadge.textContent = data.nextTicketId;
+    }
+  } catch (e) {
+    if (idBadge) idBadge.textContent = 'TK-2026-001';
+  }
+}
+
+function updateDashSubcategories() {
+  const categoryEl = document.getElementById('dash-category');
+  const subCategoryEl = document.getElementById('dash-subcategory');
+  if (!categoryEl || !subCategoryEl) return;
+
+  const selectedCat = categoryEl.value;
+  subCategoryEl.innerHTML = '';
+
+  if (!selectedCat || !subCategoryMap[selectedCat]) {
+    subCategoryEl.innerHTML = '<option value="">Select Category First...</option>';
+    return;
+  }
+
+  const options = subCategoryMap[selectedCat];
+  subCategoryEl.innerHTML = '<option value="">Select Subcategory...</option>' +
+    options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+}
+
+async function saveNewTicketFromDashboard(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('dash-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Generating Ticket...';
+  }
+
+  const formData = new FormData();
+  formData.append('userName', document.getElementById('dash-user-name').value.trim());
+  formData.append('userEmail', document.getElementById('dash-user-email').value.trim());
+  formData.append('userPhone', document.getElementById('dash-user-phone').value.trim());
+  formData.append('department', document.getElementById('dash-dept').value);
+  formData.append('category', document.getElementById('dash-category').value);
+  formData.append('subCategory', document.getElementById('dash-subcategory').value);
+  formData.append('impact', document.getElementById('dash-impact').value);
+  formData.append('urgency', document.getElementById('dash-urgency').value);
+  formData.append('subject', document.getElementById('dash-subject').value.trim());
+  formData.append('description', document.getElementById('dash-description').value.trim());
+
+  try {
+    const res = await fetch('/api/complaints', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await res.json();
+    if (res.ok && result.success) {
+      showToast(`New Ticket #${result.ticket.ticketId} logged successfully!`, 'success');
+      closeModal('createTicketModal');
+      await loadDashboard();
+    } else {
+      showToast(result.error || 'Failed to generate ticket', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while generating ticket', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Generate & Log Ticket';
+    }
+  }
+}
+
 // Open System Settings Modal
 async function openSettingsModal() {
   const token = localStorage.getItem('skillversity_token');

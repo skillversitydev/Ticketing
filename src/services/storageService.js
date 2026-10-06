@@ -43,6 +43,19 @@ class StorageService {
 
   saveTicket(ticket) {
     const tickets = this.getAllTickets();
+
+    // Strict duplication prevention: if ticketId already exists, auto-reassign new unique sequence ticketId
+    if (tickets.some(t => t.ticketId === ticket.ticketId)) {
+      try {
+        const settingsService = require('./settingsService');
+        while (tickets.some(t => t.ticketId === ticket.ticketId)) {
+          ticket.ticketId = settingsService.consumeNextTicketId();
+        }
+      } catch (err) {
+        console.warn('StorageService ticket deduplication warning:', err.message);
+      }
+    }
+
     tickets.unshift(ticket); // newest first
     this.memoryTickets = tickets;
 
@@ -191,34 +204,43 @@ class StorageService {
   syncWithSheetData(sheetTickets = []) {
     if (!Array.isArray(sheetTickets)) return this.getAllTickets();
 
-    const updatedTickets = sheetTickets.filter(st => st && st.ticketId).map(st => ({
-      ticketId: st.ticketId.trim(),
-      date: st.date || new Date().toLocaleString(),
-      createdAt: st.date || new Date().toISOString(),
-      userName: st.userName || 'Employee',
-      userEmail: st.userEmail || '',
-      userPhone: st.userPhone || st.contactNumber || '',
-      contactNumber: st.userPhone || st.contactNumber || '',
-      department: st.department || 'OTHER',
-      category: st.category || 'General Service & Other',
-      subCategory: st.subCategory || 'Other Service Request',
-      subject: st.subject || '',
-      description: st.description || '',
-      impact: st.impact || 'Medium',
-      urgency: st.urgency || 'Medium',
-      priority: st.priority || 'Medium',
-      status: st.status || 'Open',
-      assignedTo: st.assignedTo || 'Unassigned',
-      vendorTicketRef: st.vendorTicketRef || '',
-      troubleshootingNotes: st.troubleshootingNotes || '',
-      attachments: st.attachments || [],
-      userConfirmed: st.status === 'Closed',
-      auditTrail: st.auditTrail || [{
-        timestamp: new Date().toISOString(),
-        updatedBy: 'Google Sheet Sync',
-        changes: ['Synced from Google Sheet']
-      }]
-    }));
+    const seenIds = new Set();
+    const updatedTickets = [];
+
+    sheetTickets.filter(st => st && st.ticketId).forEach(st => {
+      const cleanId = st.ticketId.trim();
+      if (seenIds.has(cleanId)) return;
+      seenIds.add(cleanId);
+
+      updatedTickets.push({
+        ticketId: cleanId,
+        date: st.date || new Date().toLocaleString(),
+        createdAt: st.date || new Date().toISOString(),
+        userName: st.userName || 'Employee',
+        userEmail: st.userEmail || '',
+        userPhone: st.userPhone || st.contactNumber || '',
+        contactNumber: st.userPhone || st.contactNumber || '',
+        department: st.department || 'OTHER',
+        category: st.category || 'General Service & Other',
+        subCategory: st.subCategory || 'Other Service Request',
+        subject: st.subject || '',
+        description: st.description || '',
+        impact: st.impact || 'Medium',
+        urgency: st.urgency || 'Medium',
+        priority: st.priority || 'Medium',
+        status: st.status || 'Open',
+        assignedTo: st.assignedTo || 'Unassigned',
+        vendorTicketRef: st.vendorTicketRef || '',
+        troubleshootingNotes: st.troubleshootingNotes || '',
+        attachments: st.attachments || [],
+        userConfirmed: st.status === 'Closed',
+        auditTrail: st.auditTrail || [{
+          timestamp: new Date().toISOString(),
+          updatedBy: 'Google Sheet Sync',
+          changes: ['Synced from Google Sheet']
+        }]
+      });
+    });
 
     this.memoryTickets = updatedTickets;
 
