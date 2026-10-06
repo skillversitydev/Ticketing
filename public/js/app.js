@@ -442,39 +442,24 @@ async function loadDashboard() {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px;">Loading ticket records...</td></tr>';
 
   try {
-    const [ticketsRes, statsRes] = await Promise.all([
-      fetch('/api/complaints', { headers: { 'Authorization': `Bearer ${token}` } }),
-      fetch('/api/complaints/stats', { headers: { 'Authorization': `Bearer ${token}` } })
-    ]);
+    const ticketsRes = await fetch('/api/complaints', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-    if (ticketsRes.status === 401 || statsRes.status === 401) {
+    if (ticketsRes.status === 401) {
       localStorage.removeItem('skillversity_token');
       window.location.href = 'login.html';
       return;
     }
 
     const ticketsData = await ticketsRes.json();
-    const statsData = await statsRes.json();
 
-    if (ticketsData.success) {
+    if (ticketsData.success && Array.isArray(ticketsData.tickets)) {
       allDashboardTickets = ticketsData.tickets;
       updateStatsCards(allDashboardTickets);
       filterDashboard();
-    }
-
-    if (statsData.success && statsData.stats) {
-      const s = statsData.stats;
-      const totalEl = document.getElementById('stat-total');
-      const openEl = document.getElementById('stat-open');
-      const inProgEl = document.getElementById('stat-in-progress');
-      const vendorEl = document.getElementById('stat-vendor');
-      const resolvedEl = document.getElementById('stat-resolved');
-
-      if (totalEl) totalEl.textContent = s.total !== undefined ? s.total : (totalEl.textContent || 0);
-      if (openEl) openEl.textContent = s.open !== undefined ? s.open : (openEl.textContent || 0);
-      if (inProgEl) inProgEl.textContent = s.inProgress !== undefined ? s.inProgress : (inProgEl.textContent || 0);
-      if (vendorEl) vendorEl.textContent = s.pendingVendor !== undefined ? s.pendingVendor : (vendorEl.textContent || 0);
-      if (resolvedEl) resolvedEl.textContent = (s.resolved || 0) + (s.closed || 0);
+    } else {
+      updateStatsCards([]);
     }
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger);">Failed to load dashboard data.</td></tr>';
