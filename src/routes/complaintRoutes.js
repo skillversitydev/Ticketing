@@ -51,6 +51,9 @@ Skillversity IT Support & Complaint Management System
 
 // GET /api/complaints/next-id - Get next auto-generated ticket number preview
 router.get('/next-id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const nextId = settingsService.getNextTicketId();
   res.json({ success: true, nextTicketId: nextId });
 });

@@ -99,7 +99,7 @@ async function fetchNextTicketId() {
   if (!previewEl) return;
 
   try {
-    const res = await fetch('/api/complaints/next-id');
+    const res = await fetch(`/api/complaints/next-id?_t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
     if (data.success && data.nextTicketId) {
       previewEl.textContent = data.nextTicketId;

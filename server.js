@@ -33,14 +33,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start Server
-const PORT = config.port;
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🎓 Skillversity IT Support & Complaint Web App is running!`);
-  console.log(`🌐 Employee Portal: http://localhost:${PORT}`);
-  console.log(`🔐 Admin Login: http://localhost:${PORT}/login.html`);
-  console.log(`📋 Admin Dashboard: http://localhost:${PORT}/dashboard.html`);
-  console.log(`📧 Target Notification Email: ${config.targetEmail}`);
-  console.log(`=======================================================`);
-});
+// Start Server (local execution vs Vercel serverless export)
+if (require.main === module) {
+  const PORT = config.port;
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🎓 Skillversity IT Support & Complaint Web App is running!`);
+    console.log(`🌐 Employee Portal: http://localhost:${PORT}`);
+    console.log(`🔐 Admin Login: http://localhost:${PORT}/login.html`);
+    console.log(`📋 Admin Dashboard: http://localhost:${PORT}/dashboard.html`);
+    console.log(`📧 Target Notification Email: ${config.targetEmail}`);
+    console.log(`=======================================================`);
+  });
+}
+
+module.exports = app;
