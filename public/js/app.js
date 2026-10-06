@@ -1089,13 +1089,13 @@ async function syncWithGoogleSheet() {
 
 // Employee / User Portal Sync & Search Helper
 async function syncAndLookupTicket() {
-  showToast('Fetching latest ticket status from Google Sheet...', 'info');
+  showToast('Refreshing...', 'info');
   try {
     await fetch('/api/complaints/sync-sheet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    showToast('Sheet synchronized!', 'success');
+    showToast('Refreshed!', 'success');
   } catch (e) {
     console.warn('Sheet sync warning:', e);
   }
@@ -1214,9 +1214,11 @@ async function openSettingsModal() {
   }
 }
 
-// Reset Ticket Counter to 001 (Strictly pladmin super admin control)
-async function resetTicketCounterTo001() {
-  if (!confirm('Are you sure you want to restart the ticket sequence counter from 001? New tickets will start as TK-2026-001.')) {
+// Reset Ticket Counter Sequence (Strictly pladmin super admin control)
+async function resetTicketCounterToValue(startVal = 1001) {
+  const year = new Date().getFullYear();
+  const formattedVal = String(startVal).padStart(3, '0');
+  if (!confirm(`Are you sure you want to restart ticket sequence counter from ${startVal}? Next generated ticket preview will be TK-${year}-${formattedVal}.`)) {
     return;
   }
 
@@ -1228,12 +1230,12 @@ async function resetTicketCounterTo001() {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ startValue: 1 })
+      body: JSON.stringify({ startValue: startVal })
     });
 
     const data = await res.json();
     if (res.ok && data.success) {
-      showToast(data.message || 'Ticket sequence counter restarted from 001!', 'success');
+      showToast(data.message || `Ticket sequence counter restarted from ${startVal}!`, 'success');
       const previewEl = document.getElementById('setting-next-ticket-preview');
       if (previewEl) previewEl.textContent = data.nextTicketId;
       if (typeof fetchNextTicketId === 'function') fetchNextTicketId();
@@ -1243,6 +1245,24 @@ async function resetTicketCounterTo001() {
   } catch (err) {
     showToast('Network error while resetting ticket counter sequence', 'error');
   }
+}
+
+async function resetTicketCounterTo001() {
+  await resetTicketCounterToValue(1);
+}
+
+function applyCustomSequence() {
+  const inputEl = document.getElementById('custom-sequence-input');
+  if (!inputEl || !inputEl.value) {
+    showToast('Please enter a sequence number', 'error');
+    return;
+  }
+  const val = parseInt(inputEl.value, 10);
+  if (isNaN(val) || val <= 0) {
+    showToast('Please enter a valid sequence number', 'error');
+    return;
+  }
+  resetTicketCounterToValue(val);
 }
 
 // Save System Settings Form

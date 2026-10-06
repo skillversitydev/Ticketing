@@ -26,7 +26,7 @@ class SettingsService {
       googleAppsScriptUrl: saved.googleAppsScriptUrl || config.googleAppsScriptUrl || process.env.GOOGLE_APPS_SCRIPT_URL || '',
       googleSheetId: saved.googleSheetId || config.googleSheetId || process.env.GOOGLE_SHEET_ID || '',
       targetEmail: saved.targetEmail || config.targetEmail || process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitydev@gmail.com',
-      nextTicketSequence: saved.nextTicketSequence !== undefined ? Number(saved.nextTicketSequence) : 1
+      nextTicketSequence: saved.nextTicketSequence !== undefined ? Number(saved.nextTicketSequence) : 1001
     };
 
     this.memorySettings = merged;
@@ -133,8 +133,8 @@ class SettingsService {
     return this.getNextTicketId();
   }
 
-  resetTicketSequence(startValue = 1) {
-    const val = Number(startValue) > 0 ? Number(startValue) : 1;
+  resetTicketSequence(startValue = 1001) {
+    const val = Number(startValue) > 0 ? Number(startValue) : 1001;
     this.updateSettings({ nextTicketSequence: val });
     const year = new Date().getFullYear();
     const seqStr = String(val).padStart(3, '0');

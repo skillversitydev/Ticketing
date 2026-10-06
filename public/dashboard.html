@@ -568,11 +568,16 @@
         <div style="margin-top: 20px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; border-left: 4px solid #2563eb;">
           <h4 style="margin: 0 0 6px 0; color: #0f172a; font-size: 0.95rem; font-weight: 700;">🎫 Ticket Numbering Sequence (Super Admin Control)</h4>
           <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #64748b;">
-            Restart or reset ticket numbering sequence from <strong>001</strong> (e.g. <code>TK-2026-001</code>). Access restricted to <strong>pladmin</strong>.
+            Restart or reset ticket numbering sequence starting from <strong>1001</strong> (e.g. <code>TK-2026-1001</code>) or custom start value. Access restricted to <strong>pladmin</strong>.
           </p>
-          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <div style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">Next Preview: <span id="setting-next-ticket-preview" style="font-family: monospace; color: #2563eb; font-weight: 800; font-size: 1.05rem;">TK-2026-001</span></div>
-            <button type="button" class="btn btn-outline btn-sm" style="color: #2563eb; border-color: #93c5fd; background: #ffffff;" onclick="resetTicketCounterTo001()">🔄 Restart Sequence from 001</button>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">Next Preview: <span id="setting-next-ticket-preview" style="font-family: monospace; color: #2563eb; font-weight: 800; font-size: 1.05rem;">TK-2026-1001</span></div>
+            <button type="button" class="btn btn-outline btn-sm" style="color: #2563eb; border-color: #93c5fd; background: #ffffff; font-weight: 600;" onclick="resetTicketCounterToValue(1001)">⚡ Restart from 1001 (TK-2026-1001)</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: #475569; border-color: #cbd5e1; background: #ffffff;" onclick="resetTicketCounterToValue(1)">🔄 Restart from 001 (TK-2026-001)</button>
+            <div style="display: inline-flex; gap: 4px; align-items: center;">
+              <input type="number" id="custom-sequence-input" class="form-control" style="width: 80px; height: 32px; font-size: 0.85rem; padding: 2px 6px;" placeholder="1001" min="1">
+              <button type="button" class="btn btn-primary btn-sm" style="height: 32px; font-size: 0.8rem; padding: 0 10px; background: #4f46e5; border: none;" onclick="applyCustomSequence()">Set Custom</button>
+            </div>
           </div>
         </div>
 

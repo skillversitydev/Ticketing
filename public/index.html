@@ -16,7 +16,6 @@
       <img src="images/skillversity-logo.png" alt="Skillversity Logo" class="brand-logo">
     </a>
     <div class="nav-links">
-      <a href="index.html" class="nav-link active">Submit Ticket</a>
       <a href="login.html" class="nav-btn">Admin Portal</a>
     </div>
   </nav>
@@ -170,7 +169,7 @@
         <div class="card" id="lookup">
           <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
             <span>Track Ticket Status</span>
-            <button class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 2px 8px;" onclick="syncAndLookupTicket()">Sync Sheet 📊</button>
+            <button class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 2px 8px;" onclick="syncAndLookupTicket()">Refresh 🔄</button>
           </div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
             Enter your Ticket Reference or Work Email address.
@@ -238,7 +237,7 @@
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=1.0.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       fetchNextTicketId();
