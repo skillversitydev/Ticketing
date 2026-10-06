@@ -9,8 +9,8 @@ class SettingsService {
     this.loadSettings();
   }
 
-  loadSettings() {
-    if (this.memorySettings) return this.memorySettings;
+  loadSettings(forceReload = false) {
+    if (this.memorySettings && !forceReload) return this.memorySettings;
 
     let saved = {};
     try {
@@ -40,11 +40,11 @@ class SettingsService {
   }
 
   getSettings() {
-    return this.loadSettings();
+    return this.loadSettings(true);
   }
 
   updateSettings({ googleAppsScriptUrl, googleSheetId, targetEmail, nextTicketSequence }) {
-    const current = this.loadSettings();
+    const current = this.loadSettings(true);
 
     if (googleAppsScriptUrl !== undefined) current.googleAppsScriptUrl = googleAppsScriptUrl.trim();
     if (googleSheetId !== undefined) current.googleSheetId = googleSheetId.trim();
@@ -73,7 +73,7 @@ class SettingsService {
   }
 
   getNextTicketId() {
-    const settings = this.loadSettings();
+    const settings = this.loadSettings(true);
     const seq = Number(settings.nextTicketSequence) || 1;
     const year = new Date().getFullYear();
     const seqStr = String(seq).padStart(3, '0');

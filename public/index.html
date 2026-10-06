@@ -242,6 +242,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       fetchNextTicketId();
+      setInterval(fetchNextTicketId, 3000);
     });
   </script>
 </body>
