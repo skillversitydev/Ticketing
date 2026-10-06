@@ -5,27 +5,34 @@ const config = require('../config/config');
 class StorageService {
   constructor() {
     this.filePath = config.dataFilePath;
+    this.memoryTickets = null;
     this.ensureFileExists();
   }
 
   ensureFileExists() {
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    if (!fs.existsSync(this.filePath)) {
-      fs.writeFileSync(this.filePath, JSON.stringify([], null, 2), 'utf8');
+    try {
+      const dir = path.dirname(this.filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      if (!fs.existsSync(this.filePath)) {
+        fs.writeFileSync(this.filePath, JSON.stringify([], null, 2), 'utf8');
+      }
+    } catch (err) {
+      console.warn('StorageService file initialization warning (read-only environment):', err.message);
     }
   }
 
   getAllTickets() {
+    if (this.memoryTickets) return this.memoryTickets;
     try {
       this.ensureFileExists();
       const content = fs.readFileSync(this.filePath, 'utf8');
-      return JSON.parse(content) || [];
+      this.memoryTickets = JSON.parse(content) || [];
+      return this.memoryTickets;
     } catch (error) {
-      console.error('Error reading tickets file:', error.message);
-      return [];
+      this.memoryTickets = this.memoryTickets || [];
+      return this.memoryTickets;
     }
   }
 
@@ -37,7 +44,14 @@ class StorageService {
   saveTicket(ticket) {
     const tickets = this.getAllTickets();
     tickets.unshift(ticket); // newest first
-    fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    this.memoryTickets = tickets;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('StorageService ticket write warning (read-only filesystem):', err.message);
+    }
+
     return ticket;
   }
 
@@ -99,7 +113,13 @@ class StorageService {
     currentTicket.auditTrail.push(auditEntry);
 
     tickets[index] = currentTicket;
-    fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    this.memoryTickets = tickets;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('StorageService update write warning (read-only filesystem):', err.message);
+    }
 
     return currentTicket;
   }
@@ -112,7 +132,13 @@ class StorageService {
     }
 
     tickets.splice(index, 1);
-    fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    this.memoryTickets = tickets;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(tickets, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('StorageService delete write warning (read-only filesystem):', err.message);
+    }
 
     // Remove uploaded media files folder for this ticket if present
     const folderPath = path.join(__dirname, `../../public/uploads/${ticketId}`);

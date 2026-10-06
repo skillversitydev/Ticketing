@@ -6,6 +6,7 @@ require('dotenv').config();
 class UserService {
   constructor() {
     this.filePath = path.join(__dirname, '../../data/users.json');
+    this.memoryUsers = null;
     this.ensureFileAndDefaultAdmin();
   }
 
@@ -19,94 +20,105 @@ class UserService {
   }
 
   ensureFileAndDefaultAdmin() {
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    try {
+      const dir = path.dirname(this.filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      if (!fs.existsSync(this.filePath)) {
+        const defaultAdminUser = process.env.ADMIN_USER || 'pladmin';
+        const defaultAdminPass = process.env.ADMIN_PASS || 'pladmin123';
+        const { salt, hash } = this.hashPassword(defaultAdminPass);
+
+        const initialUsers = [{
+          id: 'usr_admin_001',
+          username: defaultAdminUser,
+          salt,
+          hash,
+          fullName: 'Skillversity IT Administrator',
+          email: process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitycomplaints@gmail.com',
+          phone: '+91 9876543210',
+          role: 'Super Admin',
+          department: 'IT OPERATIONS',
+          createdAt: new Date().toISOString(),
+          createdBy: 'System Default'
+        }];
+
+        fs.writeFileSync(this.filePath, JSON.stringify(initialUsers, null, 2), 'utf8');
+      }
+    } catch (err) {
+      console.warn('UserService initialization warning (read-only environment):', err.message);
     }
+  }
 
-    if (!fs.existsSync(this.filePath)) {
-      // Create initial default admin user from env or fallback
-      const defaultAdminUser = process.env.ADMIN_USER || 'admin';
-      const defaultAdminPass = process.env.ADMIN_PASS || 'skillversity123';
-      const { salt, hash } = this.hashPassword(defaultAdminPass);
-
-      const initialUsers = [{
-        id: 'usr_admin_001',
-        username: defaultAdminUser,
-        salt,
-        hash,
-        fullName: 'Skillversity IT Administrator',
-        email: process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitycomplaints@gmail.com',
-        phone: '+91 9876543210',
-        role: 'Super Admin',
-        department: 'IT OPERATIONS',
-        createdAt: new Date().toISOString(),
-        createdBy: 'System Default'
-      }];
-
-      fs.writeFileSync(this.filePath, JSON.stringify(initialUsers, null, 2), 'utf8');
+  getRawUsers() {
+    if (this.memoryUsers) return this.memoryUsers;
+    try {
+      this.ensureFileAndDefaultAdmin();
+      const content = fs.readFileSync(this.filePath, 'utf8');
+      this.memoryUsers = JSON.parse(content) || [];
+      return this.memoryUsers;
+    } catch (error) {
+      if (!this.memoryUsers) {
+        const defaultAdminUser = process.env.ADMIN_USER || 'pladmin';
+        const defaultAdminPass = process.env.ADMIN_PASS || 'pladmin123';
+        const { salt, hash } = this.hashPassword(defaultAdminPass);
+        this.memoryUsers = [{
+          id: 'usr_admin_001',
+          username: defaultAdminUser,
+          salt,
+          hash,
+          fullName: 'Skillversity IT Administrator',
+          email: process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitycomplaints@gmail.com',
+          phone: '+91 9876543210',
+          role: 'Super Admin',
+          department: 'IT OPERATIONS',
+          createdAt: new Date().toISOString(),
+          createdBy: 'System Default'
+        }];
+      }
+      return this.memoryUsers;
     }
   }
 
   getAllUsers() {
-    try {
-      this.ensureFileAndDefaultAdmin();
-      const content = fs.readFileSync(this.filePath, 'utf8');
-      const users = JSON.parse(content) || [];
-      // Sanitize: omit salt and hash when returning user lists
-      return users.map(u => ({
-        id: u.id,
-        username: u.username,
-        fullName: u.fullName,
-        email: u.email,
-        phone: u.phone,
-        role: u.role,
-        department: u.department,
-        createdAt: u.createdAt,
-        createdBy: u.createdBy
-      }));
-    } catch (error) {
-      console.error('Error reading users file:', error.message);
-      return [];
-    }
+    const users = this.getRawUsers();
+    return users.map(u => ({
+      id: u.id,
+      username: u.username,
+      fullName: u.fullName,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      department: u.department,
+      createdAt: u.createdAt,
+      createdBy: u.createdBy
+    }));
   }
 
   getUserByUsername(username) {
-    try {
-      this.ensureFileAndDefaultAdmin();
-      const content = fs.readFileSync(this.filePath, 'utf8');
-      const users = JSON.parse(content) || [];
-      return users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
-    } catch (error) {
-      return null;
-    }
+    const users = this.getRawUsers();
+    return users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
   }
 
   getUserById(id) {
-    try {
-      this.ensureFileAndDefaultAdmin();
-      const content = fs.readFileSync(this.filePath, 'utf8');
-      const users = JSON.parse(content) || [];
-      const user = users.find(u => u.id === id);
-      if (!user) return null;
-      return {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        department: user.department,
-        createdAt: user.createdAt
-      };
-    } catch (error) {
-      return null;
-    }
+    const users = this.getRawUsers();
+    const user = users.find(u => u.id === id);
+    if (!user) return null;
+    return {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      department: user.department,
+      createdAt: user.createdAt
+    };
   }
 
   createUser({ username, password, fullName, email, phone, role = 'IT Tech', department = 'IT OPERATIONS', createdBy = 'Admin' }) {
-    this.ensureFileAndDefaultAdmin();
-
     const existing = this.getUserByUsername(username);
     if (existing) {
       throw new Error(`Username '${username}' already exists. Please choose a different username.`);
@@ -129,10 +141,15 @@ class UserService {
       createdBy
     };
 
-    const content = fs.readFileSync(this.filePath, 'utf8');
-    const users = JSON.parse(content) || [];
+    const users = this.getRawUsers();
     users.push(newUser);
-    fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    this.memoryUsers = users;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('UserService write warning (read-only filesystem):', err.message);
+    }
 
     return {
       id: newUser.id,
@@ -147,10 +164,7 @@ class UserService {
   }
 
   updateUser(id, updateData) {
-    this.ensureFileAndDefaultAdmin();
-    const content = fs.readFileSync(this.filePath, 'utf8');
-    const users = JSON.parse(content) || [];
-
+    const users = this.getRawUsers();
     const index = users.findIndex(u => u.id === id);
     if (index === -1) {
       throw new Error('User account not found.');
@@ -172,7 +186,13 @@ class UserService {
 
     user.updatedAt = new Date().toISOString();
     users[index] = user;
-    fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    this.memoryUsers = users;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('UserService update warning (read-only filesystem):', err.message);
+    }
 
     return {
       id: user.id,
@@ -187,10 +207,7 @@ class UserService {
   }
 
   deleteUser(id) {
-    this.ensureFileAndDefaultAdmin();
-    const content = fs.readFileSync(this.filePath, 'utf8');
-    let users = JSON.parse(content) || [];
-
+    let users = this.getRawUsers();
     const targetUser = users.find(u => u.id === id);
     if (!targetUser) {
       throw new Error('User not found.');
@@ -201,7 +218,14 @@ class UserService {
     }
 
     users = users.filter(u => u.id !== id);
-    fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    this.memoryUsers = users;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(users, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('UserService delete warning (read-only filesystem):', err.message);
+    }
+
     return true;
   }
 
