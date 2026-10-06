@@ -285,11 +285,12 @@ router.delete('/:id', requireAuth, (req, res) => {
 // 7. GET /api/system/status - Diagnostics
 router.get('/system/status', (req, res) => {
   const stats = storageService.getStats();
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
   return res.json({
     success: true,
     environment: {
       port: config.port,
-      localhostUrl: `http://localhost:${config.port}`,
+      serverUrl,
       targetEmail: config.targetEmail,
       googleAppsScriptConfigured: Boolean(config.googleAppsScriptUrl),
       googleSheetsApiConfigured: Boolean(config.googleSheetId && config.googleClientEmail),

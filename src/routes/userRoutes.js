@@ -144,4 +144,62 @@ router.post('/sync-sheet', async (req, res) => {
   }
 });
 
+const config = require('../config/config');
+const fs = require('fs');
+const path = require('path');
+
+// GET /api/users/settings/config - Retrieve current Google Apps Script URL and Sheet ID
+router.get('/settings/config', (req, res) => {
+  return res.json({
+    success: true,
+    settings: {
+      googleAppsScriptUrl: config.googleAppsScriptUrl,
+      googleSheetId: config.googleSheetId,
+      targetEmail: config.targetEmail
+    }
+  });
+});
+
+// POST /api/users/settings/config - Save updated Google Apps Script URL and Sheet ID
+router.post('/settings/config', (req, res) => {
+  try {
+    const { googleAppsScriptUrl, googleSheetId, targetEmail } = req.body;
+
+    if (googleAppsScriptUrl !== undefined) config.googleAppsScriptUrl = googleAppsScriptUrl.trim();
+    if (googleSheetId !== undefined) config.googleSheetId = googleSheetId.trim();
+    if (targetEmail !== undefined) config.targetEmail = targetEmail.trim();
+
+    try {
+      const envPath = path.join(__dirname, '../../.env');
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf8');
+        if (googleAppsScriptUrl !== undefined) {
+          envContent = envContent.replace(/GOOGLE_APPS_SCRIPT_URL=.*/, `GOOGLE_APPS_SCRIPT_URL=${googleAppsScriptUrl.trim()}`);
+        }
+        if (googleSheetId !== undefined) {
+          envContent = envContent.replace(/GOOGLE_SHEET_ID=.*/, `GOOGLE_SHEET_ID=${googleSheetId.trim()}`);
+        }
+        if (targetEmail !== undefined) {
+          envContent = envContent.replace(/TARGET_NOTIFICATION_EMAIL=.*/, `TARGET_NOTIFICATION_EMAIL=${targetEmail.trim()}`);
+        }
+        fs.writeFileSync(envPath, envContent, 'utf8');
+      }
+    } catch (envErr) {
+      console.warn('Could not persist setting changes to .env file:', envErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Google Integration Settings saved successfully!',
+      settings: {
+        googleAppsScriptUrl: config.googleAppsScriptUrl,
+        googleSheetId: config.googleSheetId,
+        targetEmail: config.targetEmail
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update settings: ' + error.message });
+  }
+});
+
 module.exports = router;

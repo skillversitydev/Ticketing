@@ -75,10 +75,10 @@
     <div class="card" style="padding: 16px 20px;">
       <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
         
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 300px;">
-          <input type="text" id="dash-search" class="form-control" style="flex: 1 1 200px; min-width: 180px;" placeholder="Search ticket, name, keyword..." onkeyup="filterDashboard()">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 280px;">
+          <input type="text" id="dash-search" class="form-control" style="flex: 1 1 180px; min-width: 160px;" placeholder="Search ticket, name, keyword..." onkeyup="filterDashboard()">
           
-          <select id="dash-status" class="form-select" style="flex: 0 1 140px; min-width: 130px;" onchange="filterDashboard()">
+          <select id="dash-status" class="form-select" style="flex: 0 1 130px; min-width: 120px;" onchange="filterDashboard()">
             <option value="">All Statuses</option>
             <option value="Open">Open</option>
             <option value="In Progress">In Progress</option>
@@ -88,7 +88,7 @@
             <option value="Closed">Closed</option>
           </select>
 
-          <select id="dash-priority" class="form-select" style="flex: 0 1 130px; min-width: 120px;" onchange="filterDashboard()">
+          <select id="dash-priority" class="form-select" style="flex: 0 1 125px; min-width: 115px;" onchange="filterDashboard()">
             <option value="">All Priorities</option>
             <option value="Critical">Critical</option>
             <option value="High">High</option>
@@ -96,7 +96,7 @@
             <option value="Low">Low</option>
           </select>
 
-          <select id="dash-department" class="form-select" style="flex: 0 1 160px; min-width: 150px;" onchange="filterDashboard()">
+          <select id="dash-department" class="form-select" style="flex: 0 1 155px; min-width: 140px;" onchange="filterDashboard()">
             <option value="">All Departments</option>
             <option value="ADMINISTRATION">ADMINISTRATION</option>
             <option value="ACADEMIC OPERATIONS">ACADEMIC OPERATIONS</option>
@@ -112,9 +112,10 @@
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <button class="btn btn-primary btn-sm" style="background-color: #059669; border: none;" id="btn-sync-sheet" onclick="syncWithGoogleSheet()">Sync with Sheet 📊</button>
-          <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6; border: none;" onclick="openUserManagementModal()">User Management 👥</button>
-          <button class="btn btn-outline btn-sm" onclick="loadDashboard()">Refresh</button>
+          <button class="btn btn-primary btn-sm" style="background-color: #059669; border: none; white-space: nowrap;" id="btn-sync-sheet" onclick="syncWithGoogleSheet()">Sync with Sheet 📊</button>
+          <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6; border: none; white-space: nowrap;" onclick="openUserManagementModal()">User Management 👥</button>
+          <button class="btn btn-outline btn-sm" style="white-space: nowrap;" onclick="openSettingsModal()">⚙️ Settings</button>
+          <button class="btn btn-outline btn-sm" style="white-space: nowrap;" onclick="loadDashboard()">Refresh</button>
         </div>
 
       </div>
@@ -133,13 +134,13 @@
             <tr>
               <th style="white-space: nowrap;">Ticket ID</th>
               <th style="white-space: nowrap;">Date</th>
-              <th>Employee</th>
+              <th style="white-space: nowrap;">Employee</th>
               <th style="white-space: nowrap;">Dept</th>
-              <th>Category</th>
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Assigned To</th>
-              <th style="text-align: center;">Actions</th>
+              <th style="white-space: nowrap;">Category</th>
+              <th style="white-space: nowrap;">Priority</th>
+              <th style="white-space: nowrap;">Status</th>
+              <th style="white-space: nowrap;">Assigned To</th>
+              <th style="white-space: nowrap; text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody id="tickets-table-body">
@@ -424,6 +425,41 @@
         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('editUserModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" style="background-color: #8b5cf6;">Save User Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 style="font-weight: 700;">⚙️ Integration & System Settings</h3>
+        <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+      </div>
+
+      <form id="settingsForm" onsubmit="saveSystemSettings(event)">
+        <div class="form-group">
+          <label class="form-label" for="setting-script-url">Google Apps Script Web App URL</label>
+          <input type="text" id="setting-script-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+          <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">Deployed Web App URL for automatic Google Sheet sync and email routing.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setting-sheet-id">Google Sheet ID</label>
+          <input type="text" id="setting-sheet-id" class="form-control" placeholder="e.g. 1-e5EdSw0k-JX732HZwuN2ihv6hiOoWmYjLyLUZklOKY">
+          <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">Target Google Spreadsheet ID (from URL /d/{ID}/edit).</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setting-target-email">Notification Email Address</label>
+          <input type="email" id="setting-target-email" class="form-control" placeholder="skillversitydev@gmail.com">
+          <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">Recipient email address for automated complaint notifications.</small>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('settingsModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background-color: #059669; border: none;">Save Integration Settings</button>
         </div>
       </form>
     </div>

@@ -359,9 +359,8 @@ async function openSystemModal() {
     if (data.success) {
       statusEl.innerHTML = `
         <strong>Skillversity Diagnostic Summary:</strong><br>
-        • Localhost Server URL: http://localhost:${data.environment.port}<br>
-        • Port: ${data.environment.port}<br>
-        • Target Email: skillversitycomplaints@gmail.com<br>
+        • Live Server URL: ${data.environment.serverUrl || window.location.origin}<br>
+        • Target Email: ${data.environment.targetEmail || 'skillversitydev@gmail.com'}<br>
         • Google Apps Script Sync: ${data.environment.googleAppsScriptConfigured ? '🟢 Active' : '🟡 Pending (.env URL)'}<br>
         • Direct Google Sheets API: ${data.environment.googleSheetsApiConfigured ? '🟢 Active' : '⚪ Not Set'}<br>
         • SMTP Mail Server: ${data.environment.smtpConfigured ? '🟢 Active' : '⚪ Not Set'}<br>
@@ -487,22 +486,22 @@ function renderTable(tickets) {
     return `
       <tr>
         <td style="white-space: nowrap;"><strong style="font-family: monospace; color: #2563eb; font-size: 0.9rem;">${t.ticketId}</strong></td>
-        <td style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">${t.date}</td>
-        <td>
-          <div style="font-weight: 600;">${t.userName}</div>
-          <div style="font-size: 0.75rem; color: #64748b;">${t.userEmail}</div>
-          <div style="font-size: 0.75rem; color: #2563eb; font-weight: 500;">📞 ${t.userPhone || t.contactNumber || 'N/A'}</div>
+        <td style="font-size: 0.82rem; color: #64748b; white-space: nowrap;">${t.date}</td>
+        <td style="min-width: 150px;">
+          <div style="font-weight: 600; color: #0f172a;">${t.userName}</div>
+          <div style="font-size: 0.78rem; color: #64748b; word-break: break-all;">${t.userEmail}</div>
+          <div style="font-size: 0.78rem; color: #2563eb; font-weight: 500; white-space: nowrap;">📞 ${t.userPhone || t.contactNumber || 'N/A'}</div>
         </td>
-        <td style="white-space: nowrap; font-size: 0.85rem;">${t.department}</td>
-        <td>
-          <div style="font-weight:600; font-size: 0.8rem;">${t.category}</div>
-          <div style="font-size: 0.75rem; color:#64748b;">${t.subCategory || 'General'}</div>
+        <td style="white-space: nowrap; font-size: 0.85rem; font-weight: 500; color: #475569;">${t.department}</td>
+        <td style="min-width: 140px;">
+          <div style="font-weight: 600; font-size: 0.82rem; color: #1e293b;">${t.category}</div>
+          <div style="font-size: 0.78rem; color: #64748b;">${t.subCategory || 'General'}</div>
         </td>
-        <td><span class="badge badge-priority-${priorityClass}">${t.priority}</span></td>
-        <td><span class="badge badge-${statusClass}">${t.status}</span></td>
-        <td style="font-weight: 600; font-size: 0.85rem;">${t.assignedTo || '<span style="color:#94a3b8">Unassigned</span>'}</td>
-        <td>
-          <div style="display: flex; gap: 6px;">
+        <td style="white-space: nowrap;"><span class="badge badge-priority-${priorityClass}">${t.priority}</span></td>
+        <td style="white-space: nowrap;"><span class="badge badge-${statusClass}">${t.status}</span></td>
+        <td style="white-space: nowrap; font-weight: 600; font-size: 0.85rem;">${t.assignedTo || '<span style="color:#94a3b8">Unassigned</span>'}</td>
+        <td style="white-space: nowrap; text-align: center;">
+          <div style="display: flex; gap: 6px; justify-content: center;">
             <button class="btn btn-outline btn-sm" onclick="openEditModal('${t.ticketId}')">Edit / Resolve ✏️</button>
             <button class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteTicketRecord('${t.ticketId}')">Delete 🗑️</button>
           </div>
@@ -1053,6 +1052,59 @@ async function syncWithGoogleSheet() {
       btn.disabled = false;
       btn.innerHTML = originalText;
     }
+  }
+}
+
+// Open System Settings Modal
+async function openSettingsModal() {
+  const token = localStorage.getItem('skillversity_token');
+  openModal('settingsModal');
+
+  try {
+    const res = await fetch('/api/users/settings/config', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success && data.settings) {
+      document.getElementById('setting-script-url').value = data.settings.googleAppsScriptUrl || '';
+      document.getElementById('setting-sheet-id').value = data.settings.googleSheetId || '';
+      document.getElementById('setting-target-email').value = data.settings.targetEmail || '';
+    }
+  } catch (err) {
+    showToast('Failed to load current settings.', 'error');
+  }
+}
+
+// Save System Settings Form
+async function saveSystemSettings(e) {
+  e.preventDefault();
+  const token = localStorage.getItem('skillversity_token');
+  const googleAppsScriptUrl = document.getElementById('setting-script-url').value;
+  const googleSheetId = document.getElementById('setting-sheet-id').value;
+  const targetEmail = document.getElementById('setting-target-email').value;
+
+  try {
+    const res = await fetch('/api/users/settings/config', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        googleAppsScriptUrl,
+        googleSheetId,
+        targetEmail
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message || 'Settings saved successfully!', 'success');
+      closeModal('settingsModal');
+    } else {
+      showToast('Failed to save settings: ' + (data.message || data.error), 'error');
+    }
+  } catch (err) {
+    showToast('Network error saving settings: ' + err.message, 'error');
   }
 }
 
