@@ -162,7 +162,23 @@ async function runTests() {
     // Clean up test ticket
     storageService.deleteTicket(sheetTestTicket.ticketId);
 
-    console.log('✅ TEST 6 PASSED: Google Sheet data merging and loading verified cleanly.');
+    // Test 7: Ticket Number Sequence Management & Reset to 001
+    console.log('TEST 7: Verifying Ticket Sequence Counter & Super Admin Reset to 001...');
+    const settingsService = require('./src/services/settingsService');
+    
+    // Test resetting ticket counter sequence to 1 (formatted as TK-YYYY-001)
+    const resetPreview = settingsService.resetTicketSequence(1);
+    const currentYear = new Date().getFullYear();
+    assert.strictEqual(resetPreview, `TK-${currentYear}-001`, 'Sequence reset preview mismatch');
+
+    // Test consuming next ticket ID
+    const consumedId = settingsService.consumeNextTicketId();
+    assert.strictEqual(consumedId, `TK-${currentYear}-001`, 'Consumed ticket ID mismatch');
+
+    const nextIdPreview = settingsService.getNextTicketId();
+    assert.strictEqual(nextIdPreview, `TK-${currentYear}-002`, 'Incremented next ticket ID mismatch');
+
+    console.log(`✅ TEST 7 PASSED: Ticket Sequence counter reset ('${resetPreview}') and sequential increment ('${nextIdPreview}') verified cleanly.`);
 
     console.log('--------------------------------------------------');
     console.log('🎉 ALL SYSTEM VERIFICATION TESTS PASSED SUCCESSFULLY!');

@@ -168,18 +168,20 @@ class StorageService {
     };
 
     tickets.forEach(t => {
-      const status = t.status || 'Open';
-      if (status === 'Open') stats.open++;
-      else if (status === 'In Progress') stats.inProgress++;
-      else if (status === 'Pending Vendor') stats.pendingVendor++;
-      else if (status === 'Pending User Confirmation') stats.pendingUser++;
-      else if (status === 'Resolved') stats.resolved++;
-      else if (status === 'Closed') stats.closed++;
+      const rawStatus = (t.status || 'Open').trim().toLowerCase();
+      if (rawStatus === 'open') stats.open++;
+      else if (rawStatus === 'in progress' || rawStatus === 'in-progress') stats.inProgress++;
+      else if (rawStatus === 'pending vendor' || rawStatus === 'pending-vendor') stats.pendingVendor++;
+      else if (rawStatus === 'pending user' || rawStatus === 'pending user confirmation' || rawStatus === 'pending-user') stats.pendingUser++;
+      else if (rawStatus === 'resolved') stats.resolved++;
+      else if (rawStatus === 'closed') stats.closed++;
+      else stats.open++;
 
-      const prio = t.priority || 'Medium';
-      if (stats.byPriority[prio] !== undefined) stats.byPriority[prio]++;
+      const prio = t.priority ? t.priority.trim() : 'Medium';
+      const normalizedPrio = prio.charAt(0).toUpperCase() + prio.slice(1).toLowerCase();
+      if (stats.byPriority[normalizedPrio] !== undefined) stats.byPriority[normalizedPrio]++;
 
-      const dept = t.department || 'Other';
+      const dept = t.department ? t.department.trim() : 'OTHER';
       stats.byDepartment[dept] = (stats.byDepartment[dept] || 0) + 1;
     });
 

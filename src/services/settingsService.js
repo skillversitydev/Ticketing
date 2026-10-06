@@ -25,7 +25,8 @@ class SettingsService {
     const merged = {
       googleAppsScriptUrl: saved.googleAppsScriptUrl || config.googleAppsScriptUrl || process.env.GOOGLE_APPS_SCRIPT_URL || '',
       googleSheetId: saved.googleSheetId || config.googleSheetId || process.env.GOOGLE_SHEET_ID || '',
-      targetEmail: saved.targetEmail || config.targetEmail || process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitydev@gmail.com'
+      targetEmail: saved.targetEmail || config.targetEmail || process.env.TARGET_NOTIFICATION_EMAIL || 'skillversitydev@gmail.com',
+      nextTicketSequence: saved.nextTicketSequence !== undefined ? Number(saved.nextTicketSequence) : 1
     };
 
     this.memorySettings = merged;
@@ -42,12 +43,13 @@ class SettingsService {
     return this.loadSettings();
   }
 
-  updateSettings({ googleAppsScriptUrl, googleSheetId, targetEmail }) {
+  updateSettings({ googleAppsScriptUrl, googleSheetId, targetEmail, nextTicketSequence }) {
     const current = this.loadSettings();
 
     if (googleAppsScriptUrl !== undefined) current.googleAppsScriptUrl = googleAppsScriptUrl.trim();
     if (googleSheetId !== undefined) current.googleSheetId = googleSheetId.trim();
     if (targetEmail !== undefined) current.targetEmail = targetEmail.trim();
+    if (nextTicketSequence !== undefined) current.nextTicketSequence = Number(nextTicketSequence) || 1;
 
     this.memorySettings = current;
 
@@ -67,27 +69,33 @@ class SettingsService {
       console.warn('SettingsService write warning (read-only environment):', err.message);
     }
 
-    // Also attempt updating .env file if writable
-    try {
-      const envPath = path.join(__dirname, '../../.env');
-      if (fs.existsSync(envPath)) {
-        let envContent = fs.readFileSync(envPath, 'utf8');
-        if (googleAppsScriptUrl !== undefined) {
-          envContent = envContent.replace(/GOOGLE_APPS_SCRIPT_URL=.*/, `GOOGLE_APPS_SCRIPT_URL=${googleAppsScriptUrl.trim()}`);
-        }
-        if (googleSheetId !== undefined) {
-          envContent = envContent.replace(/GOOGLE_SHEET_ID=.*/, `GOOGLE_SHEET_ID=${googleSheetId.trim()}`);
-        }
-        if (targetEmail !== undefined) {
-          envContent = envContent.replace(/TARGET_NOTIFICATION_EMAIL=.*/, `TARGET_NOTIFICATION_EMAIL=${targetEmail.trim()}`);
-        }
-        fs.writeFileSync(envPath, envContent, 'utf8');
-      }
-    } catch (envErr) {
-      // Ignored on read-only environments
-    }
-
     return current;
+  }
+
+  getNextTicketId() {
+    const settings = this.loadSettings();
+    const seq = Number(settings.nextTicketSequence) || 1;
+    const year = new Date().getFullYear();
+    const seqStr = String(seq).padStart(3, '0');
+    return `TK-${year}-${seqStr}`;
+  }
+
+  consumeNextTicketId() {
+    const ticketId = this.getNextTicketId();
+    const match = ticketId.match(/(\d+)$/);
+    if (match) {
+      const currentNum = parseInt(match[1], 10);
+      this.updateSettings({ nextTicketSequence: currentNum + 1 });
+    }
+    return ticketId;
+  }
+
+  resetTicketSequence(startValue = 1) {
+    const val = Number(startValue) > 0 ? Number(startValue) : 1;
+    this.updateSettings({ nextTicketSequence: val });
+    const year = new Date().getFullYear();
+    const seqStr = String(val).padStart(3, '0');
+    return `TK-${year}-${seqStr}`;
   }
 }
 

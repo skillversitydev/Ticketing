@@ -185,4 +185,31 @@ router.post('/settings/config', (req, res) => {
   }
 });
 
+// POST /api/users/settings/reset-ticket-counter - Reset Ticket Sequence (Restricted strictly to pladmin)
+router.post('/settings/reset-ticket-counter', (req, res) => {
+  try {
+    const currentUser = req.currentUser;
+    const isPladmin = currentUser && (currentUser.username.toLowerCase() === 'pladmin' || currentUser.role === 'Super Admin');
+
+    if (!isPladmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access Restricted: Only the "pladmin" Super Admin can reset ticket numbering sequence.'
+      });
+    }
+
+    const startValue = req.body.startValue || 1;
+    const nextTicketId = settingsService.resetTicketSequence(startValue);
+
+    return res.json({
+      success: true,
+      message: `Ticket sequence counter successfully reset! Next generated ticket will be ${nextTicketId}.`,
+      nextTicketId,
+      startValue
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to reset ticket sequence: ' + error.message });
+  }
+});
+
 module.exports = router;

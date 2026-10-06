@@ -18,13 +18,7 @@ function calculatePriority(impact, urgency) {
   return 'Low';
 }
 
-// Generate sequential Ticket ID (e.g. TK-2026-1001)
-function generateTicketId() {
-  const year = new Date().getFullYear();
-  const allTickets = storageService.getAllTickets();
-  const count = allTickets.length + 1001;
-  return `TK-${year}-${count}`;
-}
+const settingsService = require('../services/settingsService');
 
 // Build Clean Gmail Compose URL without attached files text link
 function buildGmailComposeUrl(ticket, targetEmail) {
@@ -57,7 +51,7 @@ Skillversity IT Support & Complaint Management System
 
 // GET /api/complaints/next-id - Get next auto-generated ticket number preview
 router.get('/next-id', (req, res) => {
-  const nextId = generateTicketId();
+  const nextId = settingsService.getNextTicketId();
   res.json({ success: true, nextTicketId: nextId });
 });
 
@@ -86,7 +80,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
     }
 
     const priority = calculatePriority(impact, urgency);
-    const ticketId = generateTicketId();
+    const ticketId = settingsService.consumeNextTicketId();
     const date = req.body.ticketDate || new Date().toLocaleString();
     const phone = userPhone ? userPhone.trim() : (contactNumber ? contactNumber.trim() : '');
 

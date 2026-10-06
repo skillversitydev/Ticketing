@@ -457,6 +457,18 @@
           <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">Recipient email address for automated complaint notifications.</small>
         </div>
 
+        <!-- Ticket Sequence Control (Restricted to pladmin) -->
+        <div style="margin-top: 20px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; border-left: 4px solid #2563eb;">
+          <h4 style="margin: 0 0 6px 0; color: #0f172a; font-size: 0.95rem; font-weight: 700;">🎫 Ticket Numbering Sequence (Super Admin Control)</h4>
+          <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #64748b;">
+            Restart or reset ticket numbering sequence from <strong>001</strong> (e.g. <code>TK-2026-001</code>). Access restricted to <strong>pladmin</strong>.
+          </p>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">Next Preview: <span id="setting-next-ticket-preview" style="font-family: monospace; color: #2563eb; font-weight: 800; font-size: 1.05rem;">TK-2026-001</span></div>
+            <button type="button" class="btn btn-outline btn-sm" style="color: #2563eb; border-color: #93c5fd; background: #ffffff;" onclick="resetTicketCounterTo001()">🔄 Restart Sequence from 001</button>
+          </div>
+        </div>
+
         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('settingsModal')">Cancel</button>
           <button type="submit" class="btn btn-primary" style="background-color: #059669; border: none;">Save Integration Settings</button>

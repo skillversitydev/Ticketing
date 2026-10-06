@@ -401,6 +401,37 @@ async function checkAdminSession() {
 // Dashboard Functions & Interactive Tile Filtering
 let allDashboardTickets = [];
 
+function updateStatsCards(tickets = []) {
+  const stats = {
+    total: tickets.length,
+    open: 0,
+    inProgress: 0,
+    pendingVendor: 0,
+    resolved: 0
+  };
+
+  tickets.forEach(t => {
+    const s = (t.status || 'Open').trim().toLowerCase();
+    if (s === 'open') stats.open++;
+    else if (s === 'in progress' || s === 'in-progress') stats.inProgress++;
+    else if (s === 'pending vendor' || s === 'pending-vendor') stats.pendingVendor++;
+    else if (s === 'resolved' || s === 'closed') stats.resolved++;
+    else stats.open++;
+  });
+
+  const totalEl = document.getElementById('stat-total');
+  const openEl = document.getElementById('stat-open');
+  const inProgEl = document.getElementById('stat-in-progress');
+  const vendorEl = document.getElementById('stat-vendor');
+  const resolvedEl = document.getElementById('stat-resolved');
+
+  if (totalEl) totalEl.textContent = stats.total;
+  if (openEl) openEl.textContent = stats.open;
+  if (inProgEl) inProgEl.textContent = stats.inProgress;
+  if (vendorEl) vendorEl.textContent = stats.pendingVendor;
+  if (resolvedEl) resolvedEl.textContent = stats.resolved;
+}
+
 async function loadDashboard() {
   const tbody = document.getElementById('tickets-table-body');
   if (!tbody) return;
@@ -427,16 +458,23 @@ async function loadDashboard() {
 
     if (ticketsData.success) {
       allDashboardTickets = ticketsData.tickets;
-      renderTable(allDashboardTickets);
+      updateStatsCards(allDashboardTickets);
+      filterDashboard();
     }
 
     if (statsData.success && statsData.stats) {
       const s = statsData.stats;
-      document.getElementById('stat-total').textContent = s.total || 0;
-      document.getElementById('stat-open').textContent = s.open || 0;
-      document.getElementById('stat-in-progress').textContent = s.inProgress || 0;
-      document.getElementById('stat-vendor').textContent = s.pendingVendor || 0;
-      document.getElementById('stat-resolved').textContent = (s.resolved || 0) + (s.closed || 0);
+      const totalEl = document.getElementById('stat-total');
+      const openEl = document.getElementById('stat-open');
+      const inProgEl = document.getElementById('stat-in-progress');
+      const vendorEl = document.getElementById('stat-vendor');
+      const resolvedEl = document.getElementById('stat-resolved');
+
+      if (totalEl) totalEl.textContent = s.total !== undefined ? s.total : (totalEl.textContent || 0);
+      if (openEl) openEl.textContent = s.open !== undefined ? s.open : (openEl.textContent || 0);
+      if (inProgEl) inProgEl.textContent = s.inProgress !== undefined ? s.inProgress : (inProgEl.textContent || 0);
+      if (vendorEl) vendorEl.textContent = s.pendingVendor !== undefined ? s.pendingVendor : (vendorEl.textContent || 0);
+      if (resolvedEl) resolvedEl.textContent = (s.resolved || 0) + (s.closed || 0);
     }
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger);">Failed to load dashboard data.</td></tr>';
@@ -1085,17 +1123,57 @@ async function openSettingsModal() {
   openModal('settingsModal');
 
   try {
-    const res = await fetch('/api/users/settings/config', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
+    const [configRes, nextIdRes] = await Promise.all([
+      fetch('/api/users/settings/config', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch('/api/complaints/next-id')
+    ]);
+
+    const data = await configRes.json();
+    const nextData = await nextIdRes.json();
+
     if (data.success && data.settings) {
       document.getElementById('setting-script-url').value = data.settings.googleAppsScriptUrl || '';
       document.getElementById('setting-sheet-id').value = data.settings.googleSheetId || '';
       document.getElementById('setting-target-email').value = data.settings.targetEmail || '';
     }
+
+    if (nextData.success && nextData.nextTicketId) {
+      const previewEl = document.getElementById('setting-next-ticket-preview');
+      if (previewEl) previewEl.textContent = nextData.nextTicketId;
+    }
   } catch (err) {
     showToast('Failed to load current settings.', 'error');
+  }
+}
+
+// Reset Ticket Counter to 001 (Strictly pladmin super admin control)
+async function resetTicketCounterTo001() {
+  if (!confirm('Are you sure you want to restart the ticket sequence counter from 001? New tickets will start as TK-2026-001.')) {
+    return;
+  }
+
+  const token = localStorage.getItem('skillversity_token');
+  try {
+    const res = await fetch('/api/users/settings/reset-ticket-counter', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ startValue: 1 })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message || 'Ticket sequence counter restarted from 001!', 'success');
+      const previewEl = document.getElementById('setting-next-ticket-preview');
+      if (previewEl) previewEl.textContent = data.nextTicketId;
+      if (typeof fetchNextTicketId === 'function') fetchNextTicketId();
+    } else {
+      showToast(data.error || 'Failed to reset ticket sequence counter', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while resetting ticket counter sequence', 'error');
   }
 }
 
