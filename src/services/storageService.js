@@ -186,102 +186,51 @@ class StorageService {
     return stats;
   }
 
-  mergeTicketsFromSheet(sheetTickets = []) {
-    if (!Array.isArray(sheetTickets) || sheetTickets.length === 0) {
-      return this.getAllTickets();
-    }
+  syncWithSheetData(sheetTickets = []) {
+    if (!Array.isArray(sheetTickets)) return this.getAllTickets();
 
-    const currentTickets = this.getAllTickets();
-    let updatedCount = 0;
-    let addedCount = 0;
+    const updatedTickets = sheetTickets.filter(st => st && st.ticketId).map(st => ({
+      ticketId: st.ticketId.trim(),
+      date: st.date || new Date().toLocaleString(),
+      createdAt: st.date || new Date().toISOString(),
+      userName: st.userName || 'Employee',
+      userEmail: st.userEmail || '',
+      userPhone: st.userPhone || st.contactNumber || '',
+      contactNumber: st.userPhone || st.contactNumber || '',
+      department: st.department || 'OTHER',
+      category: st.category || 'General Service & Other',
+      subCategory: st.subCategory || 'Other Service Request',
+      subject: st.subject || '',
+      description: st.description || '',
+      impact: st.impact || 'Medium',
+      urgency: st.urgency || 'Medium',
+      priority: st.priority || 'Medium',
+      status: st.status || 'Open',
+      assignedTo: st.assignedTo || 'Unassigned',
+      vendorTicketRef: st.vendorTicketRef || '',
+      troubleshootingNotes: st.troubleshootingNotes || '',
+      attachments: st.attachments || [],
+      userConfirmed: st.status === 'Closed',
+      auditTrail: st.auditTrail || [{
+        timestamp: new Date().toISOString(),
+        updatedBy: 'Google Sheet Sync',
+        changes: ['Synced from Google Sheet']
+      }]
+    }));
 
-    sheetTickets.forEach(st => {
-      if (!st.ticketId) return;
-      const index = currentTickets.findIndex(t => t.ticketId.trim().toLowerCase() === st.ticketId.trim().toLowerCase());
-
-      if (index !== -1) {
-        const existing = currentTickets[index];
-        let changed = false;
-
-        if (st.status && st.status !== existing.status) {
-          existing.status = st.status;
-          changed = true;
-        }
-        if (st.priority && st.priority !== existing.priority) {
-          existing.priority = st.priority;
-          changed = true;
-        }
-        if (st.assignedTo && st.assignedTo !== existing.assignedTo) {
-          existing.assignedTo = st.assignedTo;
-          changed = true;
-        }
-        if (st.vendorTicketRef !== undefined && st.vendorTicketRef !== existing.vendorTicketRef) {
-          existing.vendorTicketRef = st.vendorTicketRef;
-          changed = true;
-        }
-        if (st.troubleshootingNotes && st.troubleshootingNotes !== existing.troubleshootingNotes) {
-          existing.troubleshootingNotes = st.troubleshootingNotes;
-          changed = true;
-        }
-        if (st.userName && !existing.userName) existing.userName = st.userName;
-        if (st.userEmail && !existing.userEmail) existing.userEmail = st.userEmail;
-        if (st.userPhone && !existing.userPhone) existing.userPhone = st.userPhone;
-        if (st.contactNumber && !existing.contactNumber) existing.contactNumber = st.contactNumber;
-        if (st.department && !existing.department) existing.department = st.department;
-        if (st.category && !existing.category) existing.category = st.category;
-        if (st.subCategory && !existing.subCategory) existing.subCategory = st.subCategory;
-        if (st.subject && !existing.subject) existing.subject = st.subject;
-        if (st.description && !existing.description) existing.description = st.description;
-
-        if (changed) {
-          existing.lastUpdated = new Date().toLocaleString();
-          currentTickets[index] = existing;
-          updatedCount++;
-        }
-      } else {
-        const newTicket = {
-          ticketId: st.ticketId,
-          date: st.date || new Date().toLocaleString(),
-          createdAt: st.date || new Date().toISOString(),
-          userName: st.userName || 'Employee',
-          userEmail: st.userEmail || '',
-          userPhone: st.userPhone || st.contactNumber || '',
-          contactNumber: st.userPhone || st.contactNumber || '',
-          department: st.department || 'OTHER',
-          category: st.category || 'General Service & Other',
-          subCategory: st.subCategory || 'Other Service Request',
-          subject: st.subject || 'Ticket from Google Sheet',
-          description: st.description || '',
-          impact: st.impact || 'Medium',
-          urgency: st.urgency || 'Medium',
-          priority: st.priority || 'Medium',
-          status: st.status || 'Open',
-          assignedTo: st.assignedTo || 'Unassigned',
-          vendorTicketRef: st.vendorTicketRef || '',
-          troubleshootingNotes: st.troubleshootingNotes || '',
-          attachments: st.attachments || [],
-          userConfirmed: st.status === 'Closed',
-          auditTrail: [{
-            timestamp: new Date().toISOString(),
-            updatedBy: 'Google Sheet Sync',
-            changes: ['Imported from Google Sheet']
-          }]
-        };
-        currentTickets.unshift(newTicket);
-        addedCount++;
-      }
-    });
-
-    this.memoryTickets = currentTickets;
+    this.memoryTickets = updatedTickets;
 
     try {
-      fs.writeFileSync(this.filePath, JSON.stringify(currentTickets, null, 2), 'utf8');
+      fs.writeFileSync(this.filePath, JSON.stringify(updatedTickets, null, 2), 'utf8');
     } catch (err) {
-      console.warn('StorageService merge write warning (read-only filesystem):', err.message);
+      console.warn('StorageService sync write warning:', err.message);
     }
 
-    console.log(`Merged tickets from Sheet: ${addedCount} added, ${updatedCount} updated.`);
-    return currentTickets;
+    return updatedTickets;
+  }
+
+  mergeTicketsFromSheet(sheetTickets = []) {
+    return this.syncWithSheetData(sheetTickets);
   }
 }
 

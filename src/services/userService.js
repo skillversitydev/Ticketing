@@ -251,34 +251,30 @@ class UserService {
     return null;
   }
 
-  mergeUsersFromSheet(sheetUsers = []) {
-    if (!Array.isArray(sheetUsers) || sheetUsers.length === 0) {
-      return this.getAllUsers();
-    }
+  syncWithSheetUsers(sheetUsers = []) {
+    if (!Array.isArray(sheetUsers)) return this.getAllUsers();
 
     const currentUsers = this.getRawUsers();
-    let addedCount = 0;
-    let updatedCount = 0;
 
-    sheetUsers.forEach(su => {
+    const updatedUsers = sheetUsers.map(su => {
       const username = su.username ? su.username.trim().toLowerCase() : "";
-      if (!username) return;
+      if (!username) return null;
 
-      const index = currentUsers.findIndex(u => u.username.toLowerCase() === username);
+      const existing = currentUsers.find(u => u.username.toLowerCase() === username);
 
-      if (index !== -1) {
-        const u = currentUsers[index];
-        if (su.fullName && su.fullName !== u.fullName) u.fullName = su.fullName;
-        if (su.email && su.email !== u.email) u.email = su.email;
-        if (su.phone && su.phone !== u.phone) u.phone = su.phone;
-        if (su.role && su.role !== u.role) u.role = su.role;
-        if (su.department && su.department !== u.department) u.department = su.department;
-        currentUsers[index] = u;
-        updatedCount++;
+      if (existing) {
+        return {
+          ...existing,
+          fullName: su.fullName || existing.fullName,
+          email: su.email || existing.email,
+          phone: su.phone || existing.phone,
+          role: su.role || existing.role,
+          department: su.department || existing.department
+        };
       } else {
         const defaultPass = process.env.ADMIN_PASS || 'pladmin123';
         const { salt, hash } = this.hashPassword(defaultPass);
-        const newUser = {
+        return {
           id: su.id || `usr_${Date.now()}_${Math.floor(Math.random()*1000)}`,
           username: username,
           salt,
@@ -291,21 +287,30 @@ class UserService {
           createdAt: su.createdAt || new Date().toISOString(),
           createdBy: su.createdBy || 'Google Sheet Import'
         };
-        currentUsers.push(newUser);
-        addedCount++;
       }
-    });
+    }).filter(Boolean);
 
-    this.memoryUsers = currentUsers;
-
-    try {
-      fs.writeFileSync(this.filePath, JSON.stringify(currentUsers, null, 2), 'utf8');
-    } catch (err) {
-      console.warn('UserService merge write warning (read-only filesystem):', err.message);
+    // Ensure default admin user is always preserved
+    const adminUser = process.env.ADMIN_USER || 'pladmin';
+    const hasAdmin = updatedUsers.some(u => u.username.toLowerCase() === adminUser.toLowerCase());
+    if (!hasAdmin) {
+      const defaultAdmin = currentUsers.find(u => u.username.toLowerCase() === adminUser.toLowerCase());
+      if (defaultAdmin) updatedUsers.unshift(defaultAdmin);
     }
 
-    console.log(`Merged users from Sheet: ${addedCount} added, ${updatedCount} updated.`);
+    this.memoryUsers = updatedUsers;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(updatedUsers, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('UserService sync write warning:', err.message);
+    }
+
     return this.getAllUsers();
+  }
+
+  mergeUsersFromSheet(sheetUsers = []) {
+    return this.syncWithSheetUsers(sheetUsers);
   }
 }
 

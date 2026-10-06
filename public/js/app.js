@@ -512,32 +512,38 @@ function renderTable(tickets) {
 }
 
 function filterDashboard() {
-  const q = (document.getElementById('dash-search')?.value || '').toLowerCase();
-  const status = document.getElementById('dash-status')?.value || '';
-  const priority = document.getElementById('dash-priority')?.value || '';
-  const dept = document.getElementById('dash-department')?.value || '';
+  const q = (document.getElementById('dash-search')?.value || '').trim().toLowerCase();
+  const status = (document.getElementById('dash-status')?.value || '').trim().toLowerCase();
+  const priority = (document.getElementById('dash-priority')?.value || '').trim().toLowerCase();
+  const dept = (document.getElementById('dash-department')?.value || '').trim().toLowerCase();
 
   let filtered = allDashboardTickets;
 
   if (status) {
-    if (status === 'Resolved') {
-      filtered = filtered.filter(t => t.status === 'Resolved' || t.status === 'Closed');
+    if (status === 'resolved') {
+      filtered = filtered.filter(t => t.status && (t.status.trim().toLowerCase() === 'resolved' || t.status.trim().toLowerCase() === 'closed'));
     } else {
-      filtered = filtered.filter(t => t.status === status);
+      filtered = filtered.filter(t => t.status && t.status.trim().toLowerCase() === status);
     }
   }
 
-  if (priority) filtered = filtered.filter(t => t.priority === priority);
-  if (dept) filtered = filtered.filter(t => t.department === dept);
+  if (priority) {
+    filtered = filtered.filter(t => t.priority && t.priority.trim().toLowerCase() === priority);
+  }
+
+  if (dept) {
+    filtered = filtered.filter(t => t.department && t.department.trim().toLowerCase() === dept);
+  }
+
   if (q) {
     filtered = filtered.filter(t => 
-      t.ticketId.toLowerCase().includes(q) ||
-      t.userName.toLowerCase().includes(q) ||
+      (t.ticketId && t.ticketId.toLowerCase().includes(q)) ||
+      (t.userName && t.userName.toLowerCase().includes(q)) ||
       (t.userPhone && t.userPhone.toLowerCase().includes(q)) ||
       (t.contactNumber && t.contactNumber.toLowerCase().includes(q)) ||
       (t.date && t.date.toLowerCase().includes(q)) ||
-      t.subject.toLowerCase().includes(q) ||
-      t.description.toLowerCase().includes(q) ||
+      (t.subject && t.subject.toLowerCase().includes(q)) ||
+      (t.description && t.description.toLowerCase().includes(q)) ||
       (t.category && t.category.toLowerCase().includes(q)) ||
       (t.subCategory && t.subCategory.toLowerCase().includes(q)) ||
       (t.assignedTo && t.assignedTo.toLowerCase().includes(q)) ||

@@ -4,12 +4,25 @@
     "username": "pladmin",
     "salt": "7a03779fbb122f767cb8cbfa11c1185f",
     "hash": "d3de8084b2fc7f9475b3135ee3a0bc9c8f405a3aa45e4aef3f1db04455767abbb573a0dc4a7fb268f6ff3baa2348e4ff18fc29666dfb3e08975243f8e41afe08",
-    "fullName": "Skillversity IT Administrator",
+    "fullName": "Abi Abraham Joseph",
     "email": "skillversitydev@gmail.com",
-    "phone": "#ERROR!",
-    "role": "Super Admin",
+    "phone": "7902616186",
+    "role": "Admin",
     "department": "IT OPERATIONS",
     "createdAt": "2026-09-22T04:11:58.006Z",
     "createdBy": "System Default"
+  },
+  {
+    "id": "usr_100737",
+    "username": "admin",
+    "salt": "2d144a8fa88e778d46e97fc167b27f84",
+    "hash": "76dca639067a9a47f1c436448d093796277de7a45bc0e077ad17fd3ace5ce433d588e2055fec426590a13dd6d4aa6c0c2187c7419c92c72a10d2499778be9164",
+    "fullName": "Admin",
+    "email": "skillversitydev@gmail.com",
+    "phone": "7902616186",
+    "role": "IT Tech",
+    "department": "IT OPERATIONS",
+    "createdAt": "2026-10-06T09:31:40.737Z",
+    "createdBy": "pladmin"
   }
 ]
