@@ -3,6 +3,14 @@ const { google } = require('googleapis');
 const config = require('../config/config');
 
 class SheetsService {
+  getAxiosConfig() {
+    return {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 25000,
+      maxRedirects: 5
+    };
+  }
+
   async appendTicket(ticket) {
     const results = {
       method: null,
@@ -24,10 +32,7 @@ class SheetsService {
           contactNumber: ticket.userPhone || ticket.contactNumber || 'N/A',
           attachmentUrls,
           targetEmail: config.targetEmail
-        }, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 25000
-        });
+        }, this.getAxiosConfig());
 
         if (response.data && (response.data.success || response.status === 200)) {
           results.method = 'AppsScriptWebhook';
@@ -93,7 +98,9 @@ class SheetsService {
 
     results.method = 'LocalFallback';
     results.success = false;
-    results.message = 'Google Sheet integration URL/Credentials not configured yet. Saved locally.';
+    results.message = config.googleAppsScriptUrl
+      ? 'Google Sheet webhook connection failed.'
+      : 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.';
     return results;
   }
 
@@ -104,13 +111,13 @@ class SheetsService {
           action: 'UPDATE',
           ticketId,
           ...updateData
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: 'Google Sheet update sent via Apps Script' };
       } catch (err) {
         console.warn('Apps Script update error:', err.message);
       }
     }
-    return { success: false, message: 'Apps Script URL not set or request failed.' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async deleteTicket(ticketId) {
@@ -119,13 +126,13 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'DELETE',
           ticketId
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: 'Google Sheet deletion sent via Apps Script' };
       } catch (err) {
         console.warn('Apps Script delete error:', err.message);
       }
     }
-    return { success: false, message: 'Apps Script URL not set or request failed.' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async syncHeaders() {
@@ -133,24 +140,24 @@ class SheetsService {
       try {
         const response = await axios.post(config.googleAppsScriptUrl, {
           action: 'SETUP_HEADERS'
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: response.data ? response.data.message : 'Headers synced with Google Sheet' };
       } catch (err) {
         return { success: false, message: 'Failed to sync headers: ' + err.message };
       }
     }
-    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async syncAllTickets(tickets) {
     if (!config.googleAppsScriptUrl) {
-      return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL is not configured in .env file.' };
+      return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
     }
     try {
       const response = await axios.post(config.googleAppsScriptUrl, {
         action: 'SYNC_TICKETS',
         tickets
-      }, { timeout: 25000 });
+      }, this.getAxiosConfig());
 
       return {
         success: true,
@@ -172,13 +179,13 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'CREATE_USER',
           ...user
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: 'User synced to Google Sheet (Users tab)' };
       } catch (err) {
         console.warn('Apps Script user sync error:', err.message);
       }
     }
-    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async updateUser(user) {
@@ -187,13 +194,13 @@ class SheetsService {
         await axios.post(config.googleAppsScriptUrl, {
           action: 'UPDATE_USER',
           ...user
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: 'User update synced to Google Sheet (Users tab)' };
       } catch (err) {
         console.warn('Apps Script user update error:', err.message);
       }
     }
-    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async deleteUser(username, userId) {
@@ -203,24 +210,24 @@ class SheetsService {
           action: 'DELETE_USER',
           username,
           id: userId
-        }, { timeout: 25000 });
+        }, this.getAxiosConfig());
         return { success: true, message: 'User deletion synced to Google Sheet' };
       } catch (err) {
         console.warn('Apps Script user delete error:', err.message);
       }
     }
-    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured' };
+    return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
   }
 
   async syncAllUsers(users) {
     if (!config.googleAppsScriptUrl) {
-      return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured' };
+      return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
     }
     try {
       const response = await axios.post(config.googleAppsScriptUrl, {
         action: 'SYNC_USERS',
         users
-      }, { timeout: 25000 });
+      }, this.getAxiosConfig());
       return {
         success: true,
         message: response.data ? response.data.message : `Synced ${users.length} users to Google Sheet`,

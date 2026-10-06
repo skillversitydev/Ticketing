@@ -3,7 +3,7 @@
  * Features automatic deduplication by Ticket ID and Username
  */
 
-const TARGET_EMAIL = "skillversitycomplaints@gmail.com";
+const TARGET_EMAIL = "skillversitydev@gmail.com";
 
 const TICKET_HEADERS = [
   "Ticket ID",
