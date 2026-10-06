@@ -1,0 +1,46 @@
+[
+  {
+    "ticketId": "TK-2026-1003",
+    "date": "21/9/2026, 4:55:11 pm",
+    "createdAt": "2026-09-21T11:25:12.010Z",
+    "userName": "TEST",
+    "userEmail": "TEST@GMAIL.COM",
+    "department": "IT Support",
+    "category": "IT Hardware & Devices",
+    "subject": "TEST",
+    "description": "TEST",
+    "impact": "Medium",
+    "urgency": "Medium",
+    "priority": "Medium",
+    "status": "Open",
+    "assignedTo": "Unassigned",
+    "vendorTicketRef": "",
+    "troubleshootingNotes": "",
+    "attachments": [
+      {
+        "filename": "files-1789989911879-247601449.png",
+        "originalName": "Screenshot 2026-02-23 101509.png",
+        "mimeType": "image/png",
+        "size": 113243,
+        "url": "http://localhost:3000/uploads/TK-2026-1003/files-1789989911879-247601449.png",
+        "uploadedAt": "2026-09-21T11:25:12.009Z"
+      }
+    ],
+    "userConfirmed": false,
+    "auditTrail": [
+      {
+        "timestamp": "2026-09-21T11:25:12.010Z",
+        "updatedBy": "TEST",
+        "changes": [
+          "Ticket Created"
+        ]
+      },
+      {
+        "timestamp": "2026-09-21T11:28:29.091Z",
+        "updatedBy": "Skillversity IT Admin",
+        "changes": []
+      }
+    ],
+    "lastUpdated": "21/9/2026, 4:58:29 pm"
+  }
+]

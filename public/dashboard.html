@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skillversity - Admin Complaint Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Immediate auth protection check
+    const token = localStorage.getItem('skillversity_token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+  </script>
+  <style>
+    .stat-card {
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .stat-card.active-tile {
+      box-shadow: 0 0 0 2px var(--primary);
+      background-color: #eff6ff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand">
+      <img src="images/skillversity-logo.png" alt="Skillversity Logo" class="brand-logo">
+    </a>
+    <div class="nav-links">
+      <span id="current-user-badge" style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; padding: 0 4px;">👤 Admin</span>
+      <a href="index.html" class="nav-link" target="_blank">Employee Form ↗</a>
+      <a href="dashboard.html" class="nav-link active">Admin Dashboard</a>
+      <button class="nav-btn" style="background-color: var(--success);" onclick="exportToCSV()">Export CSV</button>
+      <button class="nav-btn" style="background-color: #ef4444;" onclick="logoutAdmin()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    
+    <!-- KPI Counters (Clickable Tiles) -->
+    <div class="stats-grid">
+      <div class="stat-card" id="tile-all" onclick="filterByStatCard('')" title="Click to view all complaints">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Total Complaints / Tickets</div>
+      </div>
+      <div class="stat-card" id="tile-open" style="border-left: 4px solid var(--primary);" onclick="filterByStatCard('Open')" title="Click to filter Open tickets">
+        <div class="stat-number" id="stat-open" style="color: var(--primary);">0</div>
+        <div class="stat-label">Open / New</div>
+      </div>
+      <div class="stat-card" id="tile-in-progress" style="border-left: 4px solid var(--warning);" onclick="filterByStatCard('In Progress')" title="Click to filter In Progress tickets">
+        <div class="stat-number" id="stat-in-progress" style="color: var(--warning);">0</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card" id="tile-pending-vendor" style="border-left: 4px solid #86198f;" onclick="filterByStatCard('Pending Vendor')" title="Click to filter Pending Vendor tickets">
+        <div class="stat-number" id="stat-vendor" style="color: #86198f;">0</div>
+        <div class="stat-label">Pending Vendor</div>
+      </div>
+      <div class="stat-card" id="tile-resolved" style="border-left: 4px solid var(--success);" onclick="filterByStatCard('Resolved')" title="Click to filter Resolved / Closed tickets">
+        <div class="stat-number" id="stat-resolved" style="color: var(--success);">0</div>
+        <div class="stat-label">Resolved / Closed</div>
+      </div>
+    </div>
+
+    <!-- Filters Toolbar -->
+    <div class="card" style="padding: 16px 20px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 300px;">
+          <input type="text" id="dash-search" class="form-control" style="flex: 1 1 200px; min-width: 180px;" placeholder="Search ticket, name, keyword..." onkeyup="filterDashboard()">
+          
+          <select id="dash-status" class="form-select" style="flex: 0 1 140px; min-width: 130px;" onchange="filterDashboard()">
+            <option value="">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Pending Vendor">Pending Vendor</option>
+            <option value="Pending User Confirmation">Pending User</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+          </select>
+
+          <select id="dash-priority" class="form-select" style="flex: 0 1 130px; min-width: 120px;" onchange="filterDashboard()">
+            <option value="">All Priorities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+
+          <select id="dash-department" class="form-select" style="flex: 0 1 160px; min-width: 150px;" onchange="filterDashboard()">
+            <option value="">All Departments</option>
+            <option value="ADMINISTRATION">ADMINISTRATION</option>
+            <option value="ACADEMIC OPERATIONS">ACADEMIC OPERATIONS</option>
+            <option value="ADMISSIONS">ADMISSIONS</option>
+            <option value="BRAND COMMUNICATION">BRAND COMMUNICATION</option>
+            <option value="CORPORATE OPERATIONS">CORPORATE OPERATIONS</option>
+            <option value="IT OPERATIONS">IT OPERATIONS</option>
+            <option value="PLACEMENT">PLACEMENT</option>
+            <option value="STUDENT SUCCESS">STUDENT SUCCESS</option>
+            <option value="STUDENTS AFFAIRS">STUDENTS AFFAIRS</option>
+            <option value="OTHER">OTHER</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button class="btn btn-primary btn-sm" style="background-color: #059669; border: none;" id="btn-sync-sheet" onclick="syncWithGoogleSheet()">Sync with Sheet 📊</button>
+          <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6; border: none;" onclick="openUserManagementModal()">User Management 👥</button>
+          <button class="btn btn-outline btn-sm" onclick="loadDashboard()">Refresh</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-title">
+        <span id="dashboard-table-title">Support Tickets & Complaints</span>
+        <span id="ticket-count-badge" class="badge badge-open">Loading...</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="white-space: nowrap;">Ticket ID</th>
+              <th style="white-space: nowrap;">Date</th>
+              <th>Employee</th>
+              <th style="white-space: nowrap;">Dept</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th style="text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tickets-table-body">
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                Loading ticket records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Edit Ticket Modal -->
+  <div id="editTicketModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Edit Ticket</h3>
+        <button class="modal-close" onclick="closeModal('editTicketModal')">&times;</button>
+      </div>
+
+      <form id="editTicketForm" onsubmit="saveTicketUpdate(event)">
+        <input type="hidden" id="edit-ticket-id">
+        
+        <div style="background: #f8fafc; padding: 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <strong>Subject:</strong> <span id="edit-subject"></span>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <strong>Description:</strong> <div id="edit-description" style="color: #475569; margin-top: 4px; white-space: pre-wrap;"></div>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <strong>Submitted By:</strong> <span id="edit-user-info"></span>
+          </div>
+          <!-- Attached Images & Videos Viewer -->
+          <div id="edit-attachments-container" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px;"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-status">Status</label>
+            <select id="edit-status" class="form-select" required>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending Vendor">Pending Vendor</option>
+              <option value="Pending User Confirmation">Pending User Confirmation</option>
+              <option value="Resolved">Resolved (Notify User)</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-priority">Priority</label>
+            <select id="edit-priority" class="form-select" required>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-assignedTo">Assigned Personnel / Tech</label>
+            <select id="edit-assignedTo" class="form-select">
+              <option value="Unassigned">Unassigned</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-vendorRef">Vendor Ticket / Reference # (If External)</label>
+            <input type="text" id="edit-vendorRef" class="form-control" placeholder="e.g. DELL-INC-991283">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-troubleshooting">Troubleshooting Steps & Actions Taken</label>
+          <textarea id="edit-troubleshooting" class="form-control" placeholder="Record diagnosis, actions taken, root cause, or resolution instructions..." style="min-height: 100px;"></textarea>
+        </div>
+
+        <div id="edit-audit-log" style="font-size: 0.8rem; color: #64748b; margin-bottom: 16px;"></div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <button type="button" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteTicketFromModal()">Delete Ticket 🗑️</button>
+          <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('editTicketModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save & Sync Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Media Preview Modal -->
+  <div id="mediaModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 800px; text-align: center;">
+      <div class="modal-header">
+        <h4 id="mediaModalTitle">File Preview</h4>
+        <button class="modal-close" onclick="closeModal('mediaModal')">&times;</button>
+      </div>
+      <div id="mediaModalBody" style="padding: 10px 0;"></div>
+    </div>
+  </div>
+
+  <!-- User Management Modal -->
+  <div id="userManagementModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 1050px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <span>👥 Admin User Management</span>
+          <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(Only registered users can access the portal)</span>
+        </h3>
+        <button class="modal-close" onclick="closeModal('userManagementModal')">&times;</button>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 0.9rem; color: #475569;">
+          Registered Portal Accounts: <strong id="user-count-badge">0 Users</strong>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn btn-outline btn-sm" id="btn-sync-users-modal" onclick="syncUsersToSheet()" style="border-color: #059669; color: #059669; font-weight: 600;">
+            📊 Sync with Sheet
+          </button>
+          <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6;" onclick="openCreateUserModal()">
+            ➕ Create New User
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="white-space: nowrap;">Username</th>
+              <th style="white-space: nowrap;">Full Name</th>
+              <th>Email</th>
+              <th style="white-space: nowrap;">Phone</th>
+              <th style="white-space: nowrap;">Role</th>
+              <th style="white-space: nowrap;">Dept</th>
+              <th style="white-space: nowrap;">Created</th>
+              <th style="white-space: nowrap; text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr><td colspan="8" style="text-align: center; padding: 20px;">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 20px; text-align: right;">
+        <button class="btn btn-outline" onclick="closeModal('userManagementModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div id="createUserModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 style="font-weight: 700;">Create New Portal Account</h3>
+        <button class="modal-close" onclick="closeModal('createUserModal')">&times;</button>
+      </div>
+
+      <form id="createUserForm" onsubmit="saveNewUser(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="new-username">Username <span class="required">*</span></label>
+            <input type="text" id="new-username" class="form-control" placeholder="e.g. tech_user" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-password">Password <span class="required">*</span></label>
+            <input type="password" id="new-password" class="form-control" placeholder="Minimum 4 characters" required minlength="4">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="new-fullname">Full Name <span class="required">*</span></label>
+          <input type="text" id="new-fullname" class="form-control" placeholder="e.g. Full Name" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="new-email">Email Address <span class="required">*</span></label>
+            <input type="email" id="new-email" class="form-control" placeholder="user@skillversity.org" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-phone">Mobile / Phone Number <span class="required">*</span></label>
+            <input type="tel" id="new-phone" class="form-control" placeholder="+91 9876543210" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="new-role">System Role</label>
+            <select id="new-role" class="form-select" required>
+              <option value="IT Tech">IT Tech / Engineer</option>
+              <option value="Support Agent">Support Agent</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-dept">Department</label>
+            <select id="new-dept" class="form-select" required>
+              <option value="IT OPERATIONS">IT OPERATIONS</option>
+              <option value="ADMINISTRATION">ADMINISTRATION</option>
+              <option value="ACADEMIC OPERATIONS">ACADEMIC OPERATIONS</option>
+              <option value="ADMISSIONS">ADMISSIONS</option>
+              <option value="OTHER">OTHER</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('createUserModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background-color: #8b5cf6;">Create User Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="editUserModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 style="font-weight: 700;">Edit User Account</h3>
+        <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+      </div>
+
+      <form id="editUserForm" onsubmit="saveUserUpdate(event)">
+        <input type="hidden" id="edit-user-id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-user-username">Username</label>
+            <input type="text" id="edit-user-username" class="form-control" readonly style="background-color: #f1f5f9; cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-password">New Password (Optional)</label>
+            <input type="password" id="edit-user-password" class="form-control" placeholder="Leave blank to keep current">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-user-fullname">Full Name <span class="required">*</span></label>
+          <input type="text" id="edit-user-fullname" class="form-control" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-user-email">Email Address <span class="required">*</span></label>
+            <input type="email" id="edit-user-email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-phone">Mobile / Phone Number <span class="required">*</span></label>
+            <input type="tel" id="edit-user-phone" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-user-role">System Role</label>
+            <select id="edit-user-role" class="form-select" required>
+              <option value="IT Tech">IT Tech / Engineer</option>
+              <option value="Support Agent">Support Agent</option>
+              <option value="Admin">Admin</option>
+              <option value="Super Admin">Super Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-dept">Department</label>
+            <select id="edit-user-dept" class="form-select" required>
+              <option value="IT OPERATIONS">IT OPERATIONS</option>
+              <option value="ADMINISTRATION">ADMINISTRATION</option>
+              <option value="ACADEMIC OPERATIONS">ACADEMIC OPERATIONS</option>
+              <option value="ADMISSIONS">ADMISSIONS</option>
+              <option value="OTHER">OTHER</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('editUserModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background-color: #8b5cf6;">Save User Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/app.js?v=1.0.1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboard();
+    });
+  </script>
+</body>
+</html>

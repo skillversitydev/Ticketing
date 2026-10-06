@@ -1,0 +1,15 @@
+[
+  {
+    "id": "usr_admin_001",
+    "username": "pladmin",
+    "salt": "7a03779fbb122f767cb8cbfa11c1185f",
+    "hash": "d3de8084b2fc7f9475b3135ee3a0bc9c8f405a3aa45e4aef3f1db04455767abbb573a0dc4a7fb268f6ff3baa2348e4ff18fc29666dfb3e08975243f8e41afe08",
+    "fullName": "Skillversity IT Administrator",
+    "email": "skillversitycomplaints@gmail.com",
+    "phone": "+91 9876543210",
+    "role": "Super Admin",
+    "department": "IT OPERATIONS",
+    "createdAt": "2026-09-22T04:11:58.006Z",
+    "createdBy": "System Default"
+  }
+]
