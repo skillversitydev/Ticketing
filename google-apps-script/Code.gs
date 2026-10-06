@@ -224,10 +224,18 @@ function doPost(e) {
       }
 
       if (action === "SYNC_USERS") {
+        const usersList = data.users || [];
+        if (usersList.length === 0) {
+          ensureUserHeaders(userSheet);
+          return ContentService.createTextOutput(JSON.stringify({
+            success: true,
+            message: "User headers verified in Google Sheet (Existing users preserved)"
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+
         userSheet.clearContents();
         setupUserSheetHeaders();
 
-        const usersList = data.users || [];
         const seenUsernames = new Set();
 
         usersList.forEach(u => {
@@ -260,10 +268,18 @@ function doPost(e) {
     ensureTicketHeaders(ticketSheet);
 
     if (action === "SYNC_TICKETS" || action === "SYNC_ALL") {
+      const ticketsList = data.tickets || [];
+      if (ticketsList.length === 0) {
+        ensureTicketHeaders(ticketSheet);
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          message: "Ticket headers verified in Google Sheet (Existing tickets preserved)"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
       ticketSheet.clearContents();
       setupSheetHeaders();
 
-      const ticketsList = data.tickets || [];
       const seenTicketIds = new Set();
 
       ticketsList.forEach(t => {

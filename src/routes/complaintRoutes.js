@@ -247,16 +247,19 @@ router.patch('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Ticket not found' });
     }
 
-    sheetsService.updateTicket(ticketId, updateData).catch(err => console.warn('Sheet update err:', err));
+    // Await Google Sheet update & email notification for Vercel serverless execution
+    const [sheetResult, emailResult] = await Promise.allSettled([
+      sheetsService.updateTicket(ticketId, updateData),
+      (updateData.status || updateData.troubleshootingNotes) ? emailService.sendStatusUpdateEmail(updatedTicket) : Promise.resolve({ success: true })
+    ]);
 
-    if (updateData.status || updateData.troubleshootingNotes) {
-      emailService.sendStatusUpdateEmail(updatedTicket).catch(err => console.warn('Status email err:', err));
-    }
+    const sheetStatus = sheetResult.status === 'fulfilled' ? sheetResult.value : { success: false, message: sheetResult.reason };
 
     return res.json({
       success: true,
-      message: 'Ticket updated successfully',
-      ticket: updatedTicket
+      message: 'Ticket updated successfully and synced with Google Sheet',
+      ticket: updatedTicket,
+      sheetResult: sheetStatus
     });
 
   } catch (error) {
@@ -265,14 +268,17 @@ router.patch('/:id', async (req, res) => {
 });
 
 // 6. DELETE /api/complaints/:id - Delete a ticket (requires auth)
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const ticketId = req.params.id;
     const deleted = storageService.deleteTicket(ticketId);
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Ticket not found' });
     }
-    sheetsService.deleteTicket(ticketId).catch(err => console.warn('Sheet delete err:', err));
+
+    // Await Google Sheet row deletion for Vercel serverless execution
+    await sheetsService.deleteTicket(ticketId).catch(err => console.warn('Sheet delete err:', err));
+
     return res.json({
       success: true,
       message: `Ticket #${ticketId} deleted successfully.`
