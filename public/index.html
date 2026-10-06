@@ -168,7 +168,10 @@
 
         <!-- Track Ticket Box -->
         <div class="card" id="lookup">
-          <div class="card-title">Track Ticket Status</div>
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Track Ticket Status</span>
+            <button class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 2px 8px;" onclick="syncAndLookupTicket()">Sync Sheet 📊</button>
+          </div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
             Enter your Ticket Reference or Work Email address.
           </p>

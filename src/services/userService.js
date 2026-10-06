@@ -250,6 +250,63 @@ class UserService {
 
     return null;
   }
+
+  mergeUsersFromSheet(sheetUsers = []) {
+    if (!Array.isArray(sheetUsers) || sheetUsers.length === 0) {
+      return this.getAllUsers();
+    }
+
+    const currentUsers = this.getRawUsers();
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    sheetUsers.forEach(su => {
+      const username = su.username ? su.username.trim().toLowerCase() : "";
+      if (!username) return;
+
+      const index = currentUsers.findIndex(u => u.username.toLowerCase() === username);
+
+      if (index !== -1) {
+        const u = currentUsers[index];
+        if (su.fullName && su.fullName !== u.fullName) u.fullName = su.fullName;
+        if (su.email && su.email !== u.email) u.email = su.email;
+        if (su.phone && su.phone !== u.phone) u.phone = su.phone;
+        if (su.role && su.role !== u.role) u.role = su.role;
+        if (su.department && su.department !== u.department) u.department = su.department;
+        currentUsers[index] = u;
+        updatedCount++;
+      } else {
+        const defaultPass = process.env.ADMIN_PASS || 'pladmin123';
+        const { salt, hash } = this.hashPassword(defaultPass);
+        const newUser = {
+          id: su.id || `usr_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+          username: username,
+          salt,
+          hash,
+          fullName: su.fullName || username,
+          email: su.email || '',
+          phone: su.phone || '',
+          role: su.role || 'IT Tech',
+          department: su.department || 'IT OPERATIONS',
+          createdAt: su.createdAt || new Date().toISOString(),
+          createdBy: su.createdBy || 'Google Sheet Import'
+        };
+        currentUsers.push(newUser);
+        addedCount++;
+      }
+    });
+
+    this.memoryUsers = currentUsers;
+
+    try {
+      fs.writeFileSync(this.filePath, JSON.stringify(currentUsers, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('UserService merge write warning (read-only filesystem):', err.message);
+    }
+
+    console.log(`Merged users from Sheet: ${addedCount} added, ${updatedCount} updated.`);
+    return this.getAllUsers();
+  }
 }
 
 module.exports = new UserService();

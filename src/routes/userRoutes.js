@@ -129,14 +129,24 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// POST /api/users/sync-sheet - Sync all users to Google Sheet Users tab
+// POST /api/users/sync-sheet - Sync users and tickets with Google Sheet
 router.post('/sync-sheet', async (req, res) => {
   try {
+    const sheetData = await sheetsService.fetchAllFromSheet();
+    if (sheetData && sheetData.success) {
+      if (Array.isArray(sheetData.tickets) && sheetData.tickets.length > 0) {
+        storageService.mergeTicketsFromSheet(sheetData.tickets);
+      }
+      if (Array.isArray(sheetData.users) && sheetData.users.length > 0) {
+        userService.mergeUsersFromSheet(sheetData.users);
+      }
+    }
+
     const allUsers = userService.getAllUsers();
     const result = await sheetsService.syncAllUsers(allUsers);
     return res.json({
       success: true,
-      message: `Successfully synced ${allUsers.length} user account(s) to Google Sheet!`,
+      message: `Successfully loaded & synced ${allUsers.length} user account(s) with Google Sheet!`,
       result
     });
   } catch (error) {

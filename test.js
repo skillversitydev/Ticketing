@@ -135,6 +135,35 @@ async function runTests() {
 
     console.log(`✅ TEST 5 PASSED: User updating ('${testUsername}') and Ticket deletion ('${ticketId}') verified cleanly.`);
 
+    // Test 6: Google Sheet Bi-directional Data Merging & Syncing
+    console.log('TEST 6: Verifying Google Sheet Bi-directional Data Merging & Syncing...');
+    const sheetTestTicket = {
+      ticketId: `TK-SHEET-${Date.now().toString().slice(-4)}`,
+      date: new Date().toLocaleString(),
+      userName: 'Ramesh Kumar',
+      userEmail: 'ramesh.kumar@skillversity.org',
+      contactNumber: '+91 9988776655',
+      department: 'ACADEMIC OPERATIONS',
+      category: 'Software & Applications',
+      subCategory: 'ERP / LMS / Skillversity Portal',
+      subject: 'LMS Portal Access Issue from Google Sheet',
+      description: 'Submitted or updated in Google Sheet',
+      priority: 'High',
+      status: 'In Progress',
+      assignedTo: 'Super Admin'
+    };
+
+    const mergedTickets = storageService.mergeTicketsFromSheet([sheetTestTicket]);
+    const foundMerged = storageService.getTicketById(sheetTestTicket.ticketId);
+    assert.ok(foundMerged, 'Ticket from sheet was not merged into local storage');
+    assert.strictEqual(foundMerged.userName, 'Ramesh Kumar', 'Merged ticket employee name mismatch');
+    assert.strictEqual(foundMerged.status, 'In Progress', 'Merged ticket status mismatch');
+
+    // Clean up test ticket
+    storageService.deleteTicket(sheetTestTicket.ticketId);
+
+    console.log('✅ TEST 6 PASSED: Google Sheet data merging and loading verified cleanly.');
+
     console.log('--------------------------------------------------');
     console.log('🎉 ALL SYSTEM VERIFICATION TESTS PASSED SUCCESSFULLY!');
     console.log('--------------------------------------------------');

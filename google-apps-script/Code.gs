@@ -87,7 +87,92 @@ function ensureUserHeaders(sheet) {
   setupUserSheetHeaders();
 }
 
+function fetchAllDataFromSheets() {
+  const ticketSheet = getTargetSheet("Tickets");
+  const userSheet = getTargetSheet("Users");
+
+  const ticketValues = ticketSheet.getDataRange().getValues();
+  const userValues = userSheet.getDataRange().getValues();
+
+  const tickets = [];
+  const users = [];
+
+  for (let i = 1; i < ticketValues.length; i++) {
+    const row = ticketValues[i];
+    const ticketId = row[0] ? String(row[0]).trim() : "";
+    if (!ticketId) continue;
+
+    const attachStr = row[18] ? String(row[18]).trim() : "";
+    let attachments = [];
+    if (attachStr && attachStr !== "None") {
+      attachments = attachStr.split(',').map(u => {
+        const url = u.trim();
+        const filename = url.split('/').pop() || 'attachment';
+        return {
+          filename,
+          originalName: filename,
+          mimeType: filename.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? 'image/jpeg' : (filename.match(/\.(mp4|webm|mov)$/i) ? 'video/mp4' : 'application/octet-stream'),
+          url
+        };
+      });
+    }
+
+    tickets.push({
+      ticketId: ticketId,
+      date: row[1] ? String(row[1]).trim() : "",
+      userName: row[2] ? String(row[2]).trim() : "",
+      userEmail: row[3] ? String(row[3]).trim() : "",
+      userPhone: row[4] ? String(row[4]).trim() : "",
+      contactNumber: row[4] ? String(row[4]).trim() : "",
+      department: row[5] ? String(row[5]).trim() : "",
+      category: row[6] ? String(row[6]).trim() : "",
+      subCategory: row[7] ? String(row[7]).trim() : "",
+      subject: row[8] ? String(row[8]).trim() : "",
+      description: row[9] ? String(row[9]).trim() : "",
+      impact: row[10] ? String(row[10]).trim() : "Medium",
+      urgency: row[11] ? String(row[11]).trim() : "Medium",
+      priority: row[12] ? String(row[12]).trim() : "Medium",
+      status: row[13] ? String(row[13]).trim() : "Open",
+      assignedTo: row[14] ? String(row[14]).trim() : "Unassigned",
+      vendorTicketRef: row[15] ? String(row[15]).trim() : "",
+      troubleshootingNotes: row[16] ? String(row[16]).trim() : "",
+      lastUpdated: row[17] ? String(row[17]).trim() : "",
+      attachments: attachments
+    });
+  }
+
+  for (let j = 1; j < userValues.length; j++) {
+    const uRow = userValues[j];
+    const username = uRow[1] ? String(uRow[1]).trim() : "";
+    if (!username) continue;
+
+    users.push({
+      id: uRow[0] ? String(uRow[0]).trim() : `usr_${Date.now()}_${j}`,
+      username: username,
+      fullName: uRow[2] ? String(uRow[2]).trim() : username,
+      email: uRow[3] ? String(uRow[3]).trim() : "",
+      phone: uRow[4] ? String(uRow[4]).trim() : "",
+      role: uRow[5] ? String(uRow[5]).trim() : "IT Tech",
+      department: uRow[6] ? String(uRow[6]).trim() : "IT OPERATIONS",
+      createdAt: uRow[7] ? String(uRow[7]).trim() : new Date().toISOString(),
+      createdBy: uRow[8] ? String(uRow[8]).trim() : "System"
+    });
+  }
+
+  return {
+    success: true,
+    message: `Fetched ${tickets.length} tickets and ${users.length} users from Google Sheet`,
+    tickets: tickets,
+    users: users
+  };
+}
+
 function doGet(e) {
+  if (e && e.parameter && (e.parameter.action === "FETCH_ALL" || e.parameter.action === "LOAD_FROM_SHEET")) {
+    return ContentService.createTextOutput(JSON.stringify(fetchAllDataFromSheets()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
     message: "Skillversity IT Ticketing & User Management Apps Script Endpoint Active",
@@ -100,6 +185,11 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action || "CREATE";
+
+    if (action === "FETCH_ALL" || action === "LOAD_FROM_SHEET" || action === "READ_ALL") {
+      return ContentService.createTextOutput(JSON.stringify(fetchAllDataFromSheets()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     // USER MANAGEMENT ACTIONS
     if (action.includes("USER")) {

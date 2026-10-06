@@ -308,9 +308,22 @@ router.get('/system/status', (req, res) => {
 
 const userService = require('../services/userService');
 
-// 8. POST /api/complaints/sync-sheet - Sync column headers, tickets, and users to Google Sheets
+// 8. POST /api/complaints/sync-sheet - Bi-directional Sync: Load data from Google Sheet & push updates
 router.post('/sync-sheet', async (req, res) => {
   try {
+    // Step 1: Fetch and load data from Google Sheet
+    const sheetData = await sheetsService.fetchAllFromSheet();
+
+    if (sheetData && sheetData.success) {
+      if (Array.isArray(sheetData.tickets) && sheetData.tickets.length > 0) {
+        storageService.mergeTicketsFromSheet(sheetData.tickets);
+      }
+      if (Array.isArray(sheetData.users) && sheetData.users.length > 0) {
+        userService.mergeUsersFromSheet(sheetData.users);
+      }
+    }
+
+    // Step 2: Push complete synchronized state to Google Sheet
     const allTickets = storageService.getAllTickets();
     const allUsers = userService.getAllUsers();
     
@@ -319,7 +332,11 @@ router.post('/sync-sheet', async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Google Sheet synchronized! Synced ${ticketResult.syncedCount || 0} ticket(s) to Tickets tab & ${allUsers.length} user(s) to Users tab.`,
+      message: `Google Sheet synchronized! Loaded & synced ${allTickets.length} ticket(s) & ${allUsers.length} user(s).`,
+      ticketCount: allTickets.length,
+      userCount: allUsers.length,
+      tickets: allTickets,
+      users: allUsers,
       ticketResult,
       userResult
     });

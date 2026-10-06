@@ -840,6 +840,8 @@ async function syncUsersToSheet() {
     if (res.ok && data.success) {
       const detail = data.result && data.result.message ? ` (${data.result.message})` : '';
       showToast((data.message || 'Users synced to Google Sheet successfully!') + detail, 'success');
+      await loadUsers();
+      if (typeof loadDashboard === 'function') await loadDashboard();
     } else {
       showToast('User sync failed: ' + (data.message || data.error || 'Unknown error'), 'error');
     }
@@ -1022,7 +1024,7 @@ function deleteTicketFromModal() {
   deleteTicketRecord(ticketId);
 }
 
-// Sync Column Headers & All Tickets with Google Sheet
+// Sync Column Headers & All Tickets/Users with Google Sheet and reload data
 async function syncWithGoogleSheet() {
   const btn = document.getElementById('btn-sync-sheet');
   const originalText = btn ? btn.innerHTML : 'Sync with Sheet 📊';
@@ -1031,7 +1033,7 @@ async function syncWithGoogleSheet() {
     btn.innerHTML = 'Syncing... ⏳';
   }
 
-  showToast('Synchronizing column headers & tickets with Google Sheet...', 'info');
+  showToast('Synchronizing and loading data from Google Sheet...', 'info');
 
   try {
     const res = await fetch('/api/complaints/sync-sheet', {
@@ -1041,7 +1043,8 @@ async function syncWithGoogleSheet() {
 
     const result = await res.json();
     if (res.ok && result.success) {
-      showToast(result.message || 'Google Sheet synchronized successfully!', 'success');
+      showToast(result.message || 'Google Sheet synchronized and data loaded!', 'success');
+      await loadDashboard();
     } else {
       showToast(result.message || result.error || 'Failed to sync with Google Sheet', 'error');
     }
@@ -1053,6 +1056,21 @@ async function syncWithGoogleSheet() {
       btn.innerHTML = originalText;
     }
   }
+}
+
+// Employee / User Portal Sync & Search Helper
+async function syncAndLookupTicket() {
+  showToast('Fetching latest ticket status from Google Sheet...', 'info');
+  try {
+    await fetch('/api/complaints/sync-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    showToast('Sheet synchronized!', 'success');
+  } catch (e) {
+    console.warn('Sheet sync warning:', e);
+  }
+  lookupTicket();
 }
 
 // Open System Settings Modal

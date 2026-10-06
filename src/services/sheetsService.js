@@ -169,6 +169,31 @@ class SheetsService {
     }
   }
 
+  async fetchAllFromSheet() {
+    if (!config.googleAppsScriptUrl) {
+      return { success: false, message: 'GOOGLE_APPS_SCRIPT_URL not configured in Vercel Environment Variables.' };
+    }
+    try {
+      console.log('Fetching all tickets & users from Google Sheet via Apps Script...');
+      const response = await axios.post(config.googleAppsScriptUrl, {
+        action: 'FETCH_ALL'
+      }, this.getAxiosConfig());
+
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          tickets: response.data.tickets || [],
+          users: response.data.users || [],
+          message: response.data.message || 'Data fetched from Google Sheet'
+        };
+      }
+      return { success: false, message: response.data ? (response.data.error || 'Apps script returned error') : 'Unknown response from Apps Script' };
+    } catch (err) {
+      console.warn('Fetch from Google Sheet failed:', err.message);
+      return { success: false, message: 'Fetch failed: ' + err.message };
+    }
+  }
+
   // ==========================================
   // USER MANAGEMENT SYNC METHODS (Users Sheet)
   // ==========================================
