@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "ticketId": "TK-2026-1001",
+    "date": "Thu Oct 15 2026 11:05:49 GMT+0530 (India Standard Time)",
+    "createdAt": "Thu Oct 15 2026 11:05:49 GMT+0530 (India Standard Time)",
+    "userName": "ABI",
+    "userEmail": "abiabrahamjoseph.imscochin@gmail.com",
+    "userPhone": "7902616186",
+    "contactNumber": "7902616186",
+    "department": "IT OPERATIONS",
+    "category": "IT Hardware & Devices",
+    "subCategory": "Laptop / PC",
+    "subject": "ON ISSUE",
+    "description": "ASDGAIHKSDNKDXJUDAWUH",
+    "impact": "Medium",
+    "urgency": "Medium",
+    "priority": "Medium",
+    "status": "Closed",
+    "assignedTo": "Abi Abraham Joseph",
+    "vendorTicketRef": "N/A",
+    "troubleshootingNotes": "",
+    "attachments": [],
+    "userConfirmed": true,
+    "auditTrail": [
+      {
+        "timestamp": "2026-10-15T10:52:46.617Z",
+        "updatedBy": "Google Sheet Sync",
+        "changes": [
+          "Synced from Google Sheet"
+        ]
+      }
+    ]
+  }
+]

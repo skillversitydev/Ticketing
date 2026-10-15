@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Skillversity - Admin Complaint Dashboard</title>
+  <title>Skillversity - Admin Support Dashboard</title>
   <link rel="icon" type="image/png" href="images/skillversity-logo.png">
   <link rel="shortcut icon" href="images/skillversity-logo.png">
   <link rel="stylesheet" href="css/styles.css">
@@ -49,9 +49,9 @@
     
     <!-- KPI Counters (Clickable Tiles) -->
     <div class="stats-grid">
-      <div class="stat-card" id="tile-all" onclick="filterByStatCard('')" title="Click to view all complaints">
+      <div class="stat-card" id="tile-all" onclick="filterByStatCard('')" title="Click to view all tickets">
         <div class="stat-number" id="stat-total">0</div>
-        <div class="stat-label">Total Complaints / Tickets</div>
+        <div class="stat-label">Total Support Tickets</div>
       </div>
       <div class="stat-card" id="tile-open" style="border-left: 4px solid var(--primary);" onclick="filterByStatCard('Open')" title="Click to filter Open tickets">
         <div class="stat-number" id="stat-open" style="color: var(--primary);">0</div>
@@ -125,7 +125,7 @@
     <!-- Table -->
     <div class="card">
       <div class="card-title">
-        <span id="dashboard-table-title">Support Tickets & Complaints</span>
+        <span id="dashboard-table-title">Support Tickets</span>
         <span id="ticket-count-badge" class="badge badge-open">Loading...</span>
       </div>
 
@@ -212,8 +212,7 @@
               <option value="Software & Applications">Software & Applications</option>
               <option value="Network & Connectivity">Network & Connectivity</option>
               <option value="Access & Passwords">Access & Passwords</option>
-              <option value="Facilities & Maintenance">Facilities & Maintenance</option>
-              <option value="General Service & Other">General Service & Other</option>
+              <option value="IT Operations Support">IT Operations Support</option>
             </select>
           </div>
           <div class="form-group">
@@ -590,10 +589,10 @@
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="js/app.js?v=1.0.1"></script>
+  <script src="js/app.js?v=1.0.3"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      loadDashboard();
+      autoRefreshDashboardOnLoad();
     });
   </script>
 </body>

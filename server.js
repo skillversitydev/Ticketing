@@ -23,9 +23,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/complaints', complaintRoutes);
 
+// Global Process Safety Handlers
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Skillversity IT Support & Complaint System', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'Skillversity IT Support System', timestamp: new Date().toISOString() });
 });
 
 // Fallback to index.html for SPA navigation
@@ -38,7 +46,7 @@ if (require.main === module) {
   const PORT = config.port;
   app.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`🎓 Skillversity IT Support & Complaint Web App is running!`);
+    console.log(`🎓 Skillversity IT Support Web App is running!`);
     console.log(`🌐 Employee Portal: http://localhost:${PORT}`);
     console.log(`🔐 Admin Login: http://localhost:${PORT}/login.html`);
     console.log(`📋 Admin Dashboard: http://localhost:${PORT}/dashboard.html`);

@@ -7,7 +7,7 @@
     "fullName": "Abi Abraham Joseph",
     "email": "skillversitydev@gmail.com",
     "phone": "7902616186",
-    "role": "Admin",
+    "role": "Super Admin",
     "department": "IT OPERATIONS",
     "createdAt": "2026-09-22T04:11:58.006Z",
     "createdBy": "System Default"
@@ -20,7 +20,7 @@
     "fullName": "Admin",
     "email": "skillversitydev@gmail.com",
     "phone": "7902616186",
-    "role": "IT Tech",
+    "role": "Admin",
     "department": "IT OPERATIONS",
     "createdAt": "2026-10-06T09:31:40.737Z",
     "createdBy": "pladmin"

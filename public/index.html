@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Skillversity - Employee Complaint & IT Support Portal</title>
+  <title>Skillversity - Employee Support Portal</title>
   <link rel="icon" type="image/png" href="images/skillversity-logo.png">
   <link rel="shortcut icon" href="images/skillversity-logo.png">
   <link rel="stylesheet" href="css/styles.css">
@@ -43,12 +43,16 @@
         <!-- Header Banner with Auto Ticket ID & Date -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #2563eb; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <h3 style="margin: 0; color: #0f172a; font-size: 1.2rem; font-weight: 700;">Employee Support & Complaint Registration</h3>
+            <h3 style="margin: 0; color: #0f172a; font-size: 1.2rem; font-weight: 700;">Employee Support Registration</h3>
             <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #64748b;">Skillversity Helpdesk Portal</p>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">TICKET REF & DATE</div>
-            <div id="ticket-id-preview" style="font-size: 1.2rem; font-weight: 800; font-family: 'Consolas', monospace; color: #2563eb;">TK-2026-XXXX</div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+              <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">TICKET REF & DATE</span>
+              <button type="button" id="btn-refresh-ticket" onclick="autoRefreshOnLoad(true)" title="Auto-refresh ticket number" style="background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 4px; cursor: pointer; font-size: 0.75rem; padding: 2px 6px; color: #3730a3; transition: all 0.2s ease;">🔄 Refresh</button>
+            </div>
+            <div id="ticket-id-preview" style="font-size: 1.25rem; font-weight: 800; font-family: 'Consolas', monospace; color: #2563eb; margin-top: 2px;">TK-2026-XXXX</div>
+            <div id="ticket-sheet-ref" style="font-size: 0.72rem; color: #059669; font-weight: 600; margin-top: 1px;">Loading reference...</div>
             <div id="ticket-date-preview" style="font-size: 0.75rem; color: #475569; font-weight: 600; margin-top: 2px;"></div>
           </div>
         </div>
@@ -103,8 +107,7 @@
                 <option value="Software & Applications">Software & Applications</option>
                 <option value="Network & Connectivity">Network & Connectivity</option>
                 <option value="Access & Passwords">Access & Passwords</option>
-                <option value="Facilities & Maintenance">Facilities & Maintenance</option>
-                <option value="General Service & Other">General Service & Other</option>
+                <option value="IT Operations Support">IT Operations Support</option>
               </select>
             </div>
 
@@ -139,7 +142,7 @@
 
           <div class="form-group">
             <label class="form-label" for="subject">Subject / Summary <span class="required">*</span></label>
-            <input type="text" id="subject" name="subject" class="form-control" placeholder="Summary of issue or complaint" required>
+            <input type="text" id="subject" name="subject" class="form-control" placeholder="Summary of issue or support request" required>
           </div>
 
           <div class="form-group">
@@ -237,11 +240,10 @@
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="js/app.js?v=1.0.2"></script>
+  <script src="js/app.js?v=1.0.3"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      fetchNextTicketId();
-      setInterval(fetchNextTicketId, 3000);
+    document.addEventListener('DOMContentLoaded', () => {
+      autoRefreshOnLoad();
     });
   </script>
 </body>

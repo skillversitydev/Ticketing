@@ -2,47 +2,74 @@
 
 let globalGmailComposeUrl = '';
 
+// Live Running Clock (Updates second-by-second)
+function updateLiveDateTime() {
+  const now = new Date();
+  const formattedTime = now.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
+  const datePreviewEl = document.getElementById('ticket-date-preview');
+  const ticketDateEl = document.getElementById('ticketDate');
+
+  if (datePreviewEl) {
+    datePreviewEl.textContent = `Date: ${formattedTime}`;
+  }
+  if (ticketDateEl) {
+    ticketDateEl.value = formattedTime;
+  }
+}
+
+// Start live running clock immediately
+updateLiveDateTime();
+if (!window.liveClockInterval) {
+  window.liveClockInterval = setInterval(updateLiveDateTime, 1000);
+}
+
 const subCategoryMap = {
   'IT Hardware & Devices': [
-    'Laptop / PC',
+    'Laptop / Desktop PC',
     'Monitor / TV / Display',
     'Keyboard / Mouse / Peripherals',
     'Printer / Scanner',
-    'Mobile / Headphone / Audio'
+    'Headset / Webcam / Audio-Visual',
+    'UPS / Power Supply & Adapters'
   ],
   'Software & Applications': [
-    'Operating System Error',
-    'MS Office / Email / Outlook',
+    'Operating System (Windows / macOS / Linux)',
+    'MS Office 365 / Email / Outlook',
     'ERP / LMS / Skillversity Portal',
-    'Software License & Install Request',
-    'App Crash / Error Message'
+    'Software License & Installation Request',
+    'Antivirus & System Security',
+    'Application Error & Crash'
   ],
   'Network & Connectivity': [
-    'Wi-Fi Connection Issue',
-    'Ethernet / LAN Cable Issue',
-    'VPN / Remote Access Failure',
-    'Slow Internet Speed',
-    'IP Blocked / Firewall Issue'
+    'Office Wi-Fi Connection Issue',
+    'Ethernet / LAN Cable & Data Port',
+    'VPN & Remote Work Access',
+    'Internet Speed & Disconnection',
+    'IP Blocked / Firewall Whitelisting'
   ],
   'Access & Passwords': [
     'Password Reset Request',
-    'Account Locked / Unblock',
-    'Folder / Shared Drive Permissions',
-    'Multi-Factor Authentication (MFA)',
-    'Role & System Access Privilege'
+    'Account Locked / Unblock Request',
+    'Shared Drive / Folder Permissions',
+    'Multi-Factor Authentication (MFA / 2FA)',
+    'Role & System Access Privileges'
   ],
-  'Facilities & Maintenance': [
-    'Air Conditioning / HVAC',
-    'Electrical Power / UPS Socket',
-    'Desk / Chair Furniture Maintenance',
-    'Lab / Meeting Room Booking',
-    'Cleanliness & Workplace Safety'
-  ],
-  'General Service & Other': [
-    'General Inquiry',
-    'System Improvement Suggestion',
-    'Vendor / Procurement Request',
-    'Other Service Request'
+  'IT Operations Support': [
+    'Classroom / Meeting Room IT Setup',
+    'Data Backup & File Recovery',
+    'System Slowness & Diagnostics',
+    'IT Asset Reallocation / Relocation',
+    'Server & Cloud Services Access',
+    'Hardware Repair & Vendor RMA Support'
   ]
 };
 
@@ -86,26 +113,86 @@ function updatePriorityPreview() {
   badgeEl.className = `badge badge-priority-${prio.toLowerCase()}`;
 }
 
-// Fetch Next Ticket ID & Date Preview
-async function fetchNextTicketId() {
+// Fetch Next Ticket ID & Date Preview referencing Google Sheet
+async function fetchNextTicketId(isManualOrForce = false) {
   const previewEl = document.getElementById('ticket-id-preview');
   const datePreviewEl = document.getElementById('ticket-date-preview');
+  const sheetRefEl = document.getElementById('ticket-sheet-ref');
   const ticketDateEl = document.getElementById('ticketDate');
+  const refreshBtn = document.getElementById('btn-refresh-ticket');
 
-  const currentDateStr = new Date().toLocaleString();
-  if (datePreviewEl) datePreviewEl.textContent = `Date: ${currentDateStr}`;
-  if (ticketDateEl) ticketDateEl.value = currentDateStr;
+  updateLiveDateTime();
 
-  if (!previewEl) return;
+  if (!previewEl) return null;
+
+  if (isManualOrForce && refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '⏳ Syncing...';
+  }
 
   try {
-    const res = await fetch(`/api/complaints/next-id?_t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(`/api/complaints/next-id?refresh=true&_t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
     if (data.success && data.nextTicketId) {
       previewEl.textContent = data.nextTicketId;
+      if (sheetRefEl) {
+        if (data.lastSheetTicketId && data.lastSheetTicketId !== 'None (Sheet is Empty)') {
+          const cleanLastId = String(data.lastSheetTicketId).replace(/^#/, '');
+          sheetRefEl.innerHTML = `Ref: Last Ticket Number#<strong>${cleanLastId}</strong>`;
+          sheetRefEl.title = `Last ticket recorded is #${cleanLastId}. Next is #${data.nextTicketId}.`;
+          sheetRefEl.style.color = '#059669';
+        } else {
+          sheetRefEl.innerHTML = `Ref: Sequence Active`;
+          sheetRefEl.style.color = '#2563eb';
+        }
+      }
+      return data;
     }
   } catch (e) {
-    console.warn('Could not fetch next ticket ID');
+    console.warn('Could not fetch next ticket ID:', e);
+    if (sheetRefEl) {
+      sheetRefEl.innerHTML = `<span style="color:#b45309;">⚠️ Connecting...</span>`;
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '🔄 Refresh';
+    }
+  }
+  return null;
+}
+
+// Auto-Refresh on Loading Web
+let autoRefreshTimer = null;
+async function autoRefreshOnLoad(isUserTriggered = false) {
+  if (isUserTriggered) {
+    showToast('Refreshing ticket sequence...', 'info');
+  }
+
+  const data = await fetchNextTicketId(isUserTriggered);
+
+  if (isUserTriggered && data && data.nextTicketId) {
+    const cleanLastId = data.lastSheetTicketId ? String(data.lastSheetTicketId).replace(/^#/, '') : '';
+    const refText = cleanLastId ? ` (Last: #${cleanLastId})` : '';
+    showToast(`Refreshed! Next Ticket: #${data.nextTicketId}${refText}`, 'success');
+  }
+
+  // Ensure periodic auto-refresh is active
+  if (!autoRefreshTimer) {
+    autoRefreshTimer = setInterval(() => {
+      fetchNextTicketId(false);
+    }, 15000); // Periodic auto-refresh every 15s
+
+    // Auto-refresh when tab becomes visible again
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        fetchNextTicketId(false);
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      fetchNextTicketId(false);
+    });
   }
 }
 
@@ -183,6 +270,7 @@ async function processFormSubmission(openGmail = true) {
   submitBtn.disabled = true;
   submitBtn.innerHTML = 'Submitting Ticket...';
 
+  updateLiveDateTime();
   const formData = new FormData(form);
 
   try {
@@ -463,6 +551,46 @@ async function loadDashboard() {
     }
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger);">Failed to load dashboard data.</td></tr>';
+  }
+}
+
+// Auto-refresh Dashboard on Loading Web
+let dashboardAutoRefreshTimer = null;
+async function autoRefreshDashboardOnLoad() {
+  // 1. Initial quick load from local store
+  await loadDashboard();
+
+  // 2. Fetch fresh synchronized data from Google Sheet on web load
+  try {
+    const res = await fetch('/api/complaints/sync-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const result = await res.json();
+    if (result.success) {
+      await loadDashboard();
+    }
+  } catch (e) {
+    console.warn('Dashboard sheet sync on load notice:', e.message);
+  }
+
+  // 3. Periodic background auto-refresh every 30 seconds
+  if (!dashboardAutoRefreshTimer) {
+    dashboardAutoRefreshTimer = setInterval(async () => {
+      if (!document.hidden) {
+        await loadDashboard();
+      }
+    }, 30000);
+
+    document.addEventListener('visibilitychange', async () => {
+      if (!document.hidden) {
+        await loadDashboard();
+      }
+    });
+
+    window.addEventListener('focus', async () => {
+      await loadDashboard();
+    });
   }
 }
 

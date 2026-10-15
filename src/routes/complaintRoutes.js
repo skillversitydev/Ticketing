@@ -49,13 +49,22 @@ Skillversity IT Support & Complaint Management System
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-// GET /api/complaints/next-id - Get next auto-generated ticket number preview
+// GET /api/complaints/next-id - Get next auto-generated ticket number preview referencing Google Sheet
 router.get('/next-id', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  const nextId = await settingsService.getNextTicketIdAsync();
-  res.json({ success: true, nextTicketId: nextId });
+  const forceRefresh = req.query.refresh === 'true' || req.query.sync === 'true';
+  const result = await settingsService.getNextTicketIdAsync(forceRefresh);
+  const nextTicketId = typeof result === 'object' ? result.nextTicketId : result;
+  res.json({
+    success: true,
+    nextTicketId,
+    lastSheetTicketId: result.lastSheetTicketId || null,
+    lastSheetSequence: result.lastSheetSequence || null,
+    syncedWithSheet: result.syncedWithSheet !== false,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // 1. POST /api/complaints - Register a new complaint with subcategory and file uploads
@@ -83,7 +92,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
     }
 
     const priority = calculatePriority(impact, urgency);
-    const ticketId = settingsService.consumeNextTicketId();
+    const ticketId = await settingsService.consumeNextTicketIdAsync();
     const date = req.body.ticketDate || new Date().toLocaleString();
     const phone = userPhone ? userPhone.trim() : (contactNumber ? contactNumber.trim() : '');
 
@@ -312,8 +321,9 @@ router.post('/sync-sheet', async (req, res) => {
     const sheetData = await sheetsService.fetchAllFromSheet();
 
     if (sheetData && sheetData.success) {
-      if (Array.isArray(sheetData.tickets) && sheetData.tickets.length > 0) {
-        storageService.mergeTicketsFromSheet(sheetData.tickets);
+      if (Array.isArray(sheetData.tickets)) {
+        storageService.syncWithSheetData(sheetData.tickets);
+        settingsService.calculateNextTicketIdFromSheet(sheetData.tickets);
       }
       if (Array.isArray(sheetData.users) && sheetData.users.length > 0) {
         userService.mergeUsersFromSheet(sheetData.users);

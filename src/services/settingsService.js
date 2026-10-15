@@ -72,9 +72,69 @@ class SettingsService {
     return current;
   }
 
+  calculateNextTicketIdFromSheet(sheetTickets) {
+    const year = new Date().getFullYear();
+    let lastSheetSeq = 0;
+    let maxSheetSeq = 0;
+    let lastTicketId = null;
+
+    if (Array.isArray(sheetTickets) && sheetTickets.length > 0) {
+      // Find the last non-empty ticket in the sheet
+      for (let i = sheetTickets.length - 1; i >= 0; i--) {
+        const t = sheetTickets[i];
+        if (t && t.ticketId && String(t.ticketId).trim() !== '') {
+          lastTicketId = String(t.ticketId).trim();
+          const match = lastTicketId.match(/(\d+)$/);
+          if (match) {
+            lastSheetSeq = parseInt(match[1], 10);
+          }
+          break;
+        }
+      }
+
+      // Also find the maximum sequence across all tickets in the sheet
+      sheetTickets.forEach(t => {
+        if (t && t.ticketId) {
+          const match = String(t.ticketId).trim().match(/(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxSheetSeq) {
+              maxSheetSeq = num;
+            }
+          }
+        }
+      });
+    }
+
+    // Reference sequence is the maximum of the last ticket or highest ticket sequence in the sheet
+    const referenceSeq = Math.max(lastSheetSeq, maxSheetSeq);
+
+    let nextSeq;
+    if (referenceSeq > 0) {
+      nextSeq = referenceSeq + 1;
+    } else {
+      const settings = this.loadSettings(true);
+      nextSeq = Number(settings.nextTicketSequence) || 1001;
+    }
+
+    // Persist this next sequence
+    this.updateSettings({ nextTicketSequence: nextSeq });
+
+    const seqStr = String(nextSeq).padStart(3, '0');
+    const nextTicketId = `TK-${year}-${seqStr}`;
+
+    return {
+      nextTicketId,
+      nextSequence: nextSeq,
+      lastSheetTicketId: lastTicketId || 'None (Sheet is Empty)',
+      lastSheetSequence: referenceSeq,
+      syncedWithSheet: true
+    };
+  }
+
   getNextTicketId() {
     const settings = this.loadSettings(true);
-    let seq = Number(settings.nextTicketSequence) || 1;
+    let seq = Number(settings.nextTicketSequence) || 1001;
 
     try {
       const storageService = require('./storageService');
@@ -106,6 +166,17 @@ class SettingsService {
     return `TK-${year}-${seqStr}`;
   }
 
+  async consumeNextTicketIdAsync() {
+    try {
+      if (config.googleAppsScriptUrl) {
+        await this.getNextTicketIdAsync(true);
+      }
+    } catch (e) {
+      console.warn('Sheet sync before ticket consume warning:', e.message);
+    }
+    return this.consumeNextTicketId();
+  }
+
   consumeNextTicketId() {
     const ticketId = this.getNextTicketId();
     const match = ticketId.match(/(\d+)$/);
@@ -116,21 +187,28 @@ class SettingsService {
     return ticketId;
   }
 
-  async getNextTicketIdAsync() {
+  async getNextTicketIdAsync(forceRefresh = false) {
     try {
-      const storageService = require('./storageService');
-      const existing = storageService.getAllTickets() || [];
-      if (existing.length === 0 && config.googleAppsScriptUrl) {
+      if (config.googleAppsScriptUrl) {
         const sheetsService = require('./sheetsService');
         const sheetData = await sheetsService.fetchAllFromSheet();
-        if (sheetData && sheetData.success && Array.isArray(sheetData.tickets) && sheetData.tickets.length > 0) {
-          storageService.mergeTicketsFromSheet(sheetData.tickets);
+        if (sheetData && sheetData.success && Array.isArray(sheetData.tickets)) {
+          const storageService = require('./storageService');
+          storageService.syncWithSheetData(sheetData.tickets);
+          return this.calculateNextTicketIdFromSheet(sheetData.tickets);
         }
       }
     } catch (e) {
       console.warn('Sheets fetch warning in getNextTicketIdAsync:', e.message);
     }
-    return this.getNextTicketId();
+
+    const fallbackId = this.getNextTicketId();
+    return {
+      nextTicketId: fallbackId,
+      syncedWithSheet: false,
+      lastSheetTicketId: null,
+      lastSheetSequence: null
+    };
   }
 
   resetTicketSequence(startValue = 1001) {
