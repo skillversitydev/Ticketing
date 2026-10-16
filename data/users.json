@@ -10,19 +10,36 @@
     "role": "Super Admin",
     "department": "IT OPERATIONS",
     "createdAt": "2026-09-22T04:11:58.006Z",
-    "createdBy": "System Default"
+    "createdBy": "System Default",
+    "password": "pladmin123"
   },
   {
     "id": "usr_100737",
     "username": "admin",
-    "salt": "2d144a8fa88e778d46e97fc167b27f84",
-    "hash": "76dca639067a9a47f1c436448d093796277de7a45bc0e077ad17fd3ace5ce433d588e2055fec426590a13dd6d4aa6c0c2187c7419c92c72a10d2499778be9164",
+    "salt": "a3bb95b201998a7e71db544460121820",
+    "hash": "c27191c19401c319736b3b3cfc28e204ca3dd0b7ffd18570e907b7bcf0585b659fc28e5f8480cf3a4e64b1e91e11d330d501781dda57f959e61d3bc2d35efd21",
     "fullName": "Admin",
     "email": "skillversitydev@gmail.com",
     "phone": "7902616186",
     "role": "Admin",
     "department": "IT OPERATIONS",
     "createdAt": "2026-10-06T09:31:40.737Z",
+    "createdBy": "pladmin",
+    "password": "1234",
+    "updatedAt": "2026-10-15T11:49:52.009Z"
+  },
+  {
+    "id": "usr_350603",
+    "username": "user",
+    "password": "12345",
+    "salt": "98ab31998bc716ea2e26cd281f13d56d",
+    "hash": "437278a855d299976383251ba31dca8bbf7393088bb1c7e839cbffe564f97949ddd02d149078791768e567aeb7c7e77625f33bf64ec358ce58436dec1426fee8",
+    "fullName": "USER",
+    "email": "user@gmail.com",
+    "phone": "7897897890",
+    "role": "IT Support",
+    "department": "IT OPERATIONS",
+    "createdAt": "2026-10-16T04:02:30.603Z",
     "createdBy": "pladmin"
   }
 ]

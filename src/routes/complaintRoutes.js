@@ -6,7 +6,7 @@ const storageService = require('../services/storageService');
 const sheetsService = require('../services/sheetsService');
 const emailService = require('../services/emailService');
 const upload = require('../middleware/uploadMiddleware');
-const { requireAuth } = require('./authRoutes');
+const { requireAuth, verifyToken } = require('./authRoutes');
 const config = require('../config/config');
 
 // Calculate Priority based on Impact and Urgency matrix
@@ -191,6 +191,25 @@ router.get('/', (req, res) => {
     let tickets = storageService.getAllTickets();
     const { status, department, priority, category, subCategory, search, email } = req.query;
 
+    // Check if requester is authenticated
+    const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
+    const currentUser = token ? verifyToken(token) : null;
+
+    // Role-based visibility: Users with "IT Support" role can ONLY see tickets assigned to them
+    if (currentUser && currentUser.role && currentUser.role.trim().toLowerCase() === 'it support') {
+      const username = (currentUser.username || '').trim().toLowerCase();
+      const fullName = (currentUser.fullName || '').trim().toLowerCase();
+
+      tickets = tickets.filter(t => {
+        if (!t.assignedTo) return false;
+        const assigned = t.assignedTo.trim().toLowerCase();
+        return (
+          (username && (assigned === username || assigned.includes(username))) ||
+          (fullName && (assigned === fullName || assigned.includes(fullName)))
+        );
+      });
+    }
+
     if (status) tickets = tickets.filter(t => t.status === status);
     if (department) tickets = tickets.filter(t => t.department === department);
     if (priority) tickets = tickets.filter(t => t.priority === priority);
@@ -223,7 +242,28 @@ router.get('/', (req, res) => {
 // 3. GET /api/complaints/stats - Metrics (requires auth)
 router.get('/stats', requireAuth, (req, res) => {
   try {
-    const stats = storageService.getStats();
+    let tickets = storageService.getAllTickets();
+    if (req.currentUser && req.currentUser.role && req.currentUser.role.trim().toLowerCase() === 'it support') {
+      const username = (req.currentUser.username || '').trim().toLowerCase();
+      const fullName = (req.currentUser.fullName || '').trim().toLowerCase();
+
+      tickets = tickets.filter(t => {
+        if (!t.assignedTo) return false;
+        const assigned = t.assignedTo.trim().toLowerCase();
+        return (
+          (username && (assigned === username || assigned.includes(username))) ||
+          (fullName && (assigned === fullName || assigned.includes(fullName)))
+        );
+      });
+    }
+
+    const stats = {
+      total: tickets.length,
+      open: tickets.filter(t => (t.status || '').toLowerCase() === 'open').length,
+      inProgress: tickets.filter(t => (t.status || '').toLowerCase() === 'in progress').length,
+      pendingVendor: tickets.filter(t => (t.status || '').toLowerCase() === 'pending vendor').length,
+      resolved: tickets.filter(t => (t.status || '').toLowerCase() === 'resolved' || (t.status || '').toLowerCase() === 'closed').length
+    };
     return res.json({ success: true, stats });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
@@ -235,17 +275,57 @@ router.get('/:id', (req, res) => {
   try {
     const ticket = storageService.getTicketById(req.params.id);
     if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
+    const currentUser = token ? verifyToken(token) : null;
+    if (currentUser && currentUser.role && currentUser.role.trim().toLowerCase() === 'it support') {
+      const username = (currentUser.username || '').trim().toLowerCase();
+      const fullName = (currentUser.fullName || '').trim().toLowerCase();
+      const assigned = (ticket.assignedTo || '').trim().toLowerCase();
+      const isAssigned = (
+        (username && (assigned === username || assigned.includes(username))) ||
+        (fullName && (assigned === fullName || assigned.includes(fullName)))
+      );
+      if (!isAssigned) {
+        return res.status(403).json({ success: false, error: 'Access Denied: You can only view tickets assigned to you.' });
+      }
+    }
+
     return res.json({ success: true, ticket });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 5. PATCH /api/complaints/:id - Update ticket
-router.patch('/:id', async (req, res) => {
+// 5. PATCH /api/complaints/:id - Update ticket (Accessible to Superadmin, Admin, and User / IT Support)
+router.patch('/:id', requireAuth, async (req, res) => {
   try {
     const ticketId = req.params.id;
     const updateData = req.body;
+
+    // Role-based check: Users with "IT Support" role can only modify tickets assigned to them
+    if (req.currentUser && req.currentUser.role && req.currentUser.role.trim().toLowerCase() === 'it support') {
+      const existingTicket = storageService.getTicketById(ticketId);
+      if (existingTicket) {
+        const username = (req.currentUser.username || '').trim().toLowerCase();
+        const fullName = (req.currentUser.fullName || '').trim().toLowerCase();
+        const assigned = (existingTicket.assignedTo || '').trim().toLowerCase();
+        const isAssigned = (
+          (username && (assigned === username || assigned.includes(username))) ||
+          (fullName && (assigned === fullName || assigned.includes(fullName)))
+        );
+        if (!isAssigned) {
+          return res.status(403).json({
+            success: false,
+            error: 'Access Denied: You can only update tickets assigned to you.'
+          });
+        }
+      }
+    }
+
+    if (req.currentUser) {
+      updateData.updatedBy = `${req.currentUser.fullName || req.currentUser.username} (${req.currentUser.role || 'Staff'})`;
+    }
 
     const updatedTicket = storageService.updateTicket(ticketId, updateData);
 
@@ -263,7 +343,7 @@ router.patch('/:id', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Ticket updated successfully and synced with Google Sheet',
+      message: 'Ticket updated successfully!',
       ticket: updatedTicket,
       sheetResult: sheetStatus
     });
@@ -273,9 +353,22 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// 6. DELETE /api/complaints/:id - Delete a ticket (requires auth)
+// 6. DELETE /api/complaints/:id - Delete a ticket (Restricted strictly to Superadmin pladmin)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    const isSuperadmin = req.currentUser && (
+      req.currentUser.username.toLowerCase() === 'pladmin' ||
+      req.currentUser.role === 'Superadmin' ||
+      req.currentUser.role === 'Super Admin'
+    );
+
+    if (!isSuperadmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access Denied: Only Superadmin (pladmin) can delete tickets.'
+      });
+    }
+
     const ticketId = req.params.id;
     const deleted = storageService.deleteTicket(ticketId);
     if (!deleted) {
@@ -314,9 +407,23 @@ router.get('/system/status', (req, res) => {
 
 const userService = require('../services/userService');
 
-// 8. POST /api/complaints/sync-sheet - Bi-directional Sync: Load data from Google Sheet & push updates
-router.post('/sync-sheet', async (req, res) => {
+// 8. POST /api/complaints/sync-sheet - Bi-directional Live Sync: Load & push updates
+router.post('/sync-sheet', requireAuth, async (req, res) => {
   try {
+    const isAllowed = req.currentUser && (
+      req.currentUser.username.toLowerCase() === 'pladmin' ||
+      req.currentUser.role === 'Superadmin' ||
+      req.currentUser.role === 'Super Admin' ||
+      req.currentUser.role === 'Admin'
+    );
+
+    if (!isAllowed) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access Restricted: Live Synchronization is only accessible to Superadmin and Admin.'
+      });
+    }
+
     // Step 1: Fetch and load data from Google Sheet
     const sheetData = await sheetsService.fetchAllFromSheet();
 
@@ -332,14 +439,14 @@ router.post('/sync-sheet', async (req, res) => {
 
     // Step 2: Push complete synchronized state to Google Sheet
     const allTickets = storageService.getAllTickets();
-    const allUsers = userService.getAllUsers();
+    const allUsers = userService.getAllUsers(true);
     
     const ticketResult = await sheetsService.syncAllTickets(allTickets);
     const userResult = await sheetsService.syncAllUsers(allUsers);
 
     return res.json({
       success: true,
-      message: `Google Sheet synchronized! Loaded & synced ${allTickets.length} ticket(s) & ${allUsers.length} user(s).`,
+      message: `Live data synchronized successfully! Loaded & synced ${allTickets.length} ticket(s) & ${allUsers.length} user(s).`,
       ticketCount: allTickets.length,
       userCount: allUsers.length,
       tickets: allTickets,

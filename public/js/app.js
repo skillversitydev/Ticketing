@@ -2,6 +2,17 @@
 
 let globalGmailComposeUrl = '';
 
+// HTML escaping helper for safe rendering
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Live Running Clock (Updates second-by-second)
 function updateLiveDateTime() {
   const now = new Date();
@@ -127,7 +138,7 @@ async function fetchNextTicketId(isManualOrForce = false) {
 
   if (isManualOrForce && refreshBtn) {
     refreshBtn.disabled = true;
-    refreshBtn.innerHTML = '⏳ Syncing...';
+    refreshBtn.innerHTML = '<span class="refresh-icon spinning">🔄</span> <span class="refresh-text">Syncing...</span>';
   }
 
   try {
@@ -156,7 +167,7 @@ async function fetchNextTicketId(isManualOrForce = false) {
   } finally {
     if (refreshBtn) {
       refreshBtn.disabled = false;
-      refreshBtn.innerHTML = '🔄 Refresh';
+      refreshBtn.innerHTML = '<span class="refresh-icon">🔄</span> <span class="refresh-text">Refresh</span>';
     }
   }
   return null;
@@ -471,10 +482,52 @@ async function checkAdminSession() {
     });
     const data = await res.json();
     if (data.authenticated && data.user) {
+      window.currentAdminUser = data.user;
       const userBadge = document.getElementById('current-user-badge');
       if (userBadge) {
         userBadge.textContent = `👤 ${data.user.fullName || data.user.username}`;
       }
+
+      // Strictly restrict User Management & Settings to pladmin Super Admin
+      const isPladmin = data.user && (
+        (data.user.username && data.user.username.toLowerCase() === 'pladmin') ||
+        data.user.role === 'Super Admin'
+      );
+
+      const userMgmtBtn = document.getElementById('btn-user-mgmt');
+      if (userMgmtBtn) {
+        userMgmtBtn.style.display = isPladmin ? 'inline-flex' : 'none';
+      }
+
+      const settingsBtn = document.getElementById('btn-system-settings');
+      if (settingsBtn) {
+        settingsBtn.style.display = isPladmin ? 'inline-flex' : 'none';
+      }
+
+      // Sync with live access only to Superadmin and Admin
+      const isSuperOrAdmin = data.user && (
+        (data.user.username && data.user.username.toLowerCase() === 'pladmin') ||
+        data.user.role === 'Superadmin' ||
+        data.user.role === 'Super Admin' ||
+        data.user.role === 'Admin'
+      );
+
+      const syncLiveBtn = document.getElementById('btn-sync-live');
+      if (syncLiveBtn) {
+        syncLiveBtn.style.display = isSuperOrAdmin ? 'inline-flex' : 'none';
+      }
+
+      // Title & label adjustment for IT Support role
+      const isItSupport = data.user && data.user.role === 'IT Support';
+      const tableTitle = document.getElementById('dashboard-table-title');
+      if (tableTitle) {
+        tableTitle.textContent = isItSupport ? 'My Assigned Support Tickets' : 'Support Tickets';
+      }
+      const totalLabel = document.querySelector('#tile-all .stat-label');
+      if (totalLabel) {
+        totalLabel.textContent = isItSupport ? 'My Assigned Tickets' : 'Total Support Tickets';
+      }
+
       return true;
     } else {
       localStorage.removeItem('skillversity_token');
@@ -544,6 +597,18 @@ async function loadDashboard() {
 
     if (ticketsData.success && Array.isArray(ticketsData.tickets)) {
       allDashboardTickets = ticketsData.tickets;
+
+      // Ensure IT Support role only sees assigned tickets on client side as well
+      if (window.currentAdminUser && window.currentAdminUser.role === 'IT Support') {
+        const u = (window.currentAdminUser.username || '').trim().toLowerCase();
+        const f = (window.currentAdminUser.fullName || '').trim().toLowerCase();
+        allDashboardTickets = allDashboardTickets.filter(t => {
+          if (!t.assignedTo) return false;
+          const a = t.assignedTo.trim().toLowerCase();
+          return (u && (a === u || a.includes(u))) || (f && (a === f || a.includes(f)));
+        });
+      }
+
       updateStatsCards(allDashboardTickets);
       filterDashboard();
     } else {
@@ -554,21 +619,56 @@ async function loadDashboard() {
   }
 }
 
+// Manual Refresh Handler (reloads latest assigned tickets and alerts "Refreshed")
+async function handleRefreshClick() {
+  const btn = document.getElementById('btn-refresh');
+  const originalHtml = btn ? btn.innerHTML : '🔄 Refresh';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="refresh-icon spinning" style="font-size:0.9rem; margin-right:4px;">🔄</span> Refreshing...';
+  }
+
+  try {
+    await loadDashboard();
+    showToast('Refreshed', 'success');
+  } catch (err) {
+    showToast('Failed to refresh tickets', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
 // Auto-refresh Dashboard on Loading Web
 let dashboardAutoRefreshTimer = null;
 async function autoRefreshDashboardOnLoad() {
   // 1. Initial quick load from local store
   await loadDashboard();
 
-  // 2. Fetch fresh synchronized data from Google Sheet on web load
+  // 2. Fetch fresh synchronized data from Google Sheet on web load (Superadmin and Admin only)
   try {
-    const res = await fetch('/api/complaints/sync-sheet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const result = await res.json();
-    if (result.success) {
-      await loadDashboard();
+    const isSuperOrAdmin = window.currentAdminUser && (
+      (window.currentAdminUser.username && window.currentAdminUser.username.toLowerCase() === 'pladmin') ||
+      window.currentAdminUser.role === 'Superadmin' ||
+      window.currentAdminUser.role === 'Super Admin' ||
+      window.currentAdminUser.role === 'Admin'
+    );
+
+    if (isSuperOrAdmin) {
+      const token = localStorage.getItem('skillversity_token');
+      const res = await fetch('/api/complaints/sync-sheet', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await res.json();
+      if (result.success) {
+        await loadDashboard();
+      }
     }
   } catch (e) {
     console.warn('Dashboard sheet sync on load notice:', e.message);
@@ -618,43 +718,80 @@ function filterByStatCard(status) {
   filterDashboard();
 }
 
+function formatTicketDate(dateStr) {
+  if (!dateStr) return '<span style="color:#94a3b8">N/A</span>';
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const timeStr = `${hours}:${minutes} ${ampm}`;
+    return `<div style="font-weight:600; color:#1e293b; white-space:nowrap;">${day} ${month} ${year}</div><div style="font-size:0.75rem; color:#64748b; white-space:nowrap;">${timeStr}</div>`;
+  }
+  return `<span style="white-space:nowrap;">${escapeHtml(dateStr)}</span>`;
+}
+
 function renderTable(tickets) {
   const tbody = document.getElementById('tickets-table-body');
   const countBadge = document.getElementById('ticket-count-badge');
   if (!tbody) return;
 
-  if (countBadge) countBadge.textContent = `${tickets.length} Tickets`;
+  if (countBadge) {
+    countBadge.textContent = `${tickets.length} ${tickets.length === 1 ? 'Ticket' : 'Tickets'}`;
+  }
 
   if (tickets.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">No complaint records found matching current filter.</td></tr>';
     return;
   }
 
+  const isSuperadmin = window.currentAdminUser && (
+    (window.currentAdminUser.username && window.currentAdminUser.username.toLowerCase() === 'pladmin') ||
+    (window.currentAdminUser.role && (
+      window.currentAdminUser.role.toLowerCase() === 'superadmin' ||
+      window.currentAdminUser.role.toLowerCase() === 'super admin'
+    ))
+  );
+
   tbody.innerHTML = tickets.map(t => {
     const statusClass = t.status.toLowerCase().replace(/ /g, '-');
     const priorityClass = t.priority.toLowerCase();
 
+    const deleteBtnHtml = isSuperadmin ? `
+      <button class="action-btn action-btn-delete" onclick="deleteTicketRecord('${t.ticketId}')" title="Delete ticket (Superadmin only)">
+        🗑️ Delete
+      </button>
+    ` : '';
+
     return `
       <tr>
         <td style="white-space: nowrap;"><strong style="font-family: monospace; color: #2563eb; font-size: 0.9rem;">${t.ticketId}</strong></td>
-        <td style="font-size: 0.82rem; color: #64748b; white-space: nowrap;">${t.date}</td>
+        <td style="white-space: nowrap;">${formatTicketDate(t.date)}</td>
         <td style="min-width: 150px;">
-          <div style="font-weight: 600; color: #0f172a;">${t.userName}</div>
-          <div style="font-size: 0.78rem; color: #64748b; word-break: break-all;">${t.userEmail}</div>
-          <div style="font-size: 0.78rem; color: #2563eb; font-weight: 500; white-space: nowrap;">📞 ${t.userPhone || t.contactNumber || 'N/A'}</div>
+          <div style="font-weight: 600; color: #0f172a;">${escapeHtml(t.userName)}</div>
+          <div style="font-size: 0.78rem; color: #64748b; word-break: break-all;">${escapeHtml(t.userEmail)}</div>
+          <div style="font-size: 0.78rem; color: #2563eb; font-weight: 500; white-space: nowrap;">📞 ${escapeHtml(t.userPhone || t.contactNumber || 'N/A')}</div>
         </td>
-        <td style="white-space: nowrap; font-size: 0.85rem; font-weight: 500; color: #475569;">${t.department}</td>
+        <td style="white-space: nowrap; font-size: 0.82rem; font-weight: 600; color: #475569;">${escapeHtml(t.department)}</td>
         <td style="min-width: 140px;">
-          <div style="font-weight: 600; font-size: 0.82rem; color: #1e293b;">${t.category}</div>
-          <div style="font-size: 0.78rem; color: #64748b;">${t.subCategory || 'General'}</div>
+          <div style="font-weight: 600; font-size: 0.82rem; color: #1e293b;">${escapeHtml(t.category)}</div>
+          <div style="font-size: 0.78rem; color: #64748b;">${escapeHtml(t.subCategory || 'General')}</div>
         </td>
-        <td style="white-space: nowrap;"><span class="badge badge-priority-${priorityClass}">${t.priority}</span></td>
-        <td style="white-space: nowrap;"><span class="badge badge-${statusClass}">${t.status}</span></td>
-        <td style="white-space: nowrap; font-weight: 600; font-size: 0.85rem;">${t.assignedTo || '<span style="color:#94a3b8">Unassigned</span>'}</td>
+        <td style="white-space: nowrap; text-align: center;"><span class="badge badge-priority-${priorityClass}">${escapeHtml(t.priority)}</span></td>
+        <td style="white-space: nowrap; text-align: center;"><span class="badge badge-${statusClass}">${escapeHtml(t.status)}</span></td>
+        <td style="white-space: nowrap; font-weight: 600; font-size: 0.85rem;">${escapeHtml(t.assignedTo || '') || '<span style="color:#94a3b8">Unassigned</span>'}</td>
         <td style="white-space: nowrap; text-align: center;">
-          <div style="display: flex; gap: 6px; justify-content: center;">
-            <button class="btn btn-outline btn-sm" onclick="openEditModal('${t.ticketId}')">Edit / Resolve ✏️</button>
-            <button class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteTicketRecord('${t.ticketId}')">Delete 🗑️</button>
+          <div class="action-btn-group">
+            <button class="action-btn action-btn-edit" onclick="openEditModal('${t.ticketId}')" title="Edit / Update ticket">
+              ✏️ Edit
+            </button>
+            ${deleteBtnHtml}
           </div>
         </td>
       </tr>
@@ -825,22 +962,57 @@ async function openEditModal(ticketId) {
     auditEl.innerHTML = '';
   }
 
+  // Delete button in modal: ONLY available for Superadmin
+  const isSuperadmin = window.currentAdminUser && (
+    (window.currentAdminUser.username && window.currentAdminUser.username.toLowerCase() === 'pladmin') ||
+    (window.currentAdminUser.role && (
+      window.currentAdminUser.role.toLowerCase() === 'superadmin' ||
+      window.currentAdminUser.role.toLowerCase() === 'super admin'
+    ))
+  );
+
+  const deleteBtnModal = document.getElementById('btn-delete-ticket-modal');
+  if (deleteBtnModal) {
+    deleteBtnModal.style.display = isSuperadmin ? 'inline-flex' : 'none';
+  }
+
+  // Ticket Edit is fully accessible for Superadmin, Admin, and User / IT Support
+  const viewOnlyBanner = document.getElementById('ticket-viewonly-banner');
+  if (viewOnlyBanner) {
+    viewOnlyBanner.style.display = 'none';
+  }
+
+  ['edit-status', 'edit-priority', 'edit-assignedTo', 'edit-vendorRef', 'edit-troubleshooting'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+
+  const saveBtn = document.getElementById('btn-save-ticket-update');
+  if (saveBtn) {
+    saveBtn.style.display = 'inline-flex';
+    saveBtn.disabled = false;
+  }
+
   openModal('editTicketModal');
 }
 
-// Save Ticket Update
+// Save Ticket Update (Accessible to Superadmin, Admin, and User / IT Support)
 async function saveTicketUpdate(e) {
   e.preventDefault();
   const ticketId = document.getElementById('edit-ticket-id').value;
   const token = localStorage.getItem('skillversity_token');
   
+  const updaterName = window.currentAdminUser
+    ? `${window.currentAdminUser.fullName || window.currentAdminUser.username} (${window.currentAdminUser.role || 'Staff'})`
+    : 'Skillversity Staff';
+
   const updateData = {
     status: document.getElementById('edit-status').value,
     priority: document.getElementById('edit-priority').value,
     assignedTo: document.getElementById('edit-assignedTo').value,
     vendorTicketRef: document.getElementById('edit-vendorRef').value,
     troubleshootingNotes: document.getElementById('edit-troubleshooting').value,
-    updatedBy: 'Skillversity IT Admin'
+    updatedBy: updaterName
   };
 
   try {
@@ -911,8 +1083,23 @@ function exportToCSV() {
   showToast('CSV export downloaded!', 'success');
 }
 
-// User Management Functions
+// User Management Functions (Strictly restricted to pladmin)
 async function openUserManagementModal() {
+  const token = localStorage.getItem('skillversity_token');
+  if (!token) {
+    showToast('Authentication required. Please log in as pladmin.', 'error');
+    return;
+  }
+
+  if (window.currentAdminUser) {
+    const isPladmin = (window.currentAdminUser.username && window.currentAdminUser.username.toLowerCase() === 'pladmin') ||
+      window.currentAdminUser.role === 'Super Admin';
+    if (!isPladmin) {
+      showToast('Access Restricted: Only "pladmin" Super Admin can access User Management.', 'error');
+      return;
+    }
+  }
+
   openModal('userManagementModal');
   await loadUsers();
 }
@@ -923,44 +1110,83 @@ async function loadUsers() {
   if (!tbody) return;
 
   const token = localStorage.getItem('skillversity_token');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Loading registered user accounts...</td></tr>';
+  if (!token) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--danger); font-weight: 600;">Authentication required. Please <a href="login.html" style="color: #2563eb; text-decoration: underline;">log in as pladmin</a>.</td></tr>';
+    showToast('Please log in as pladmin.', 'error');
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Loading registered user accounts...</td></tr>';
 
   try {
     const res = await fetch('/api/users', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+
+    if (res.status === 401) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--danger); font-weight: 600;">Session expired. Please <a href="login.html" style="color: #2563eb; text-decoration: underline;">log in again as pladmin</a>.</td></tr>';
+      showToast('Session expired. Please log in again.', 'error');
+      return;
+    }
+
+    if (res.status === 403) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--danger); font-weight: 600;">Access Denied: Only "pladmin" has access to User Management.</td></tr>';
+      showToast('Access Restricted: Only "pladmin" can access User Management.', 'error');
+      return;
+    }
+
     const data = await res.json();
 
     if (data.success && data.users) {
       if (countBadge) countBadge.textContent = `${data.users.length} Users`;
 
       if (data.users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-muted);">No users found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--text-muted);">No users found.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.users.map(u => `
+      tbody.innerHTML = data.users.map(u => {
+        const pwd = u.password || 'pladmin123';
+        const isPladminUser = (u.username && u.username.toLowerCase() === 'pladmin');
+        let formattedDate = '-';
+        if (u.createdAt) {
+          try {
+            const d = new Date(u.createdAt);
+            if (!isNaN(d.getTime())) formattedDate = d.toLocaleDateString();
+          } catch (e) {}
+        }
+
+        return `
         <tr>
-          <td style="white-space: nowrap;"><strong style="font-family: monospace; color: #2563eb;">${u.username}</strong></td>
-          <td style="font-weight: 500; min-width: 140px;">${u.fullName || u.username}</td>
-          <td style="font-size: 0.85rem; color: #475569;">${u.email || '-'}</td>
-          <td style="font-size: 0.85rem; color: #2563eb; white-space: nowrap;">📞 ${u.phone || '-'}</td>
-          <td style="white-space: nowrap;"><span class="badge badge-open" style="background:#ede9fe; color:#6d28d9; font-weight: 600;">${u.role}</span></td>
-          <td style="white-space: nowrap;"><span style="font-size: 0.85rem; color: #475569; font-weight: 500;">${u.department || 'IT'}</span></td>
-          <td style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">${new Date(u.createdAt).toLocaleDateString()}</td>
+          <td style="white-space: nowrap;"><strong style="font-family: monospace; color: #2563eb; font-size: 0.95rem;">${escapeHtml(u.username)}</strong></td>
+          <td style="font-weight: 500; min-width: 130px;">${escapeHtml(u.fullName || u.username)}</td>
+          <td style="white-space: nowrap; background: #f8fafc;">
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              <span id="pwd-val-${u.id}" class="password-text" data-password="${escapeHtml(pwd)}" data-masked="false" style="font-family: monospace; font-weight: 700; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; font-size: 0.9rem; letter-spacing: 0.5px;">${escapeHtml(pwd)}</span>
+              <button type="button" class="btn btn-outline btn-sm" style="padding: 2px 6px; font-size: 0.75rem;" onclick="togglePasswordRow('${u.id}')" title="Toggle Show/Hide">👁️</button>
+              <button type="button" class="btn btn-outline btn-sm" style="padding: 2px 6px; font-size: 0.75rem;" onclick="copyPasswordToClipboard('${escapeHtml(pwd)}')" title="Copy password">📋</button>
+            </div>
+          </td>
+          <td style="font-size: 0.85rem; color: #475569;">${escapeHtml(u.email || '-')}</td>
+          <td style="font-size: 0.85rem; color: #2563eb; white-space: nowrap;">📞 ${escapeHtml(u.phone || '-')}</td>
+          <td style="white-space: nowrap;"><span class="badge badge-open" style="background:#ede9fe; color:#6d28d9; font-weight: 600;">${escapeHtml(u.role)}</span></td>
+          <td style="white-space: nowrap;"><span style="font-size: 0.85rem; color: #475569; font-weight: 500;">${escapeHtml(u.department || 'IT')}</span></td>
+          <td style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">${escapeHtml(formattedDate)}</td>
           <td style="white-space: nowrap; text-align: center;">
             <div style="display: flex; gap: 6px; justify-content: center;">
               <button class="btn btn-outline btn-sm" onclick="openEditUserModal('${u.id}')">Edit ✏️</button>
-              <button class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteUser('${u.id}', '${u.username}')">Delete 🗑️</button>
+              ${isPladminUser ? '' : `<button class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteUser('${u.id}', '${escapeHtml(u.username)}')">Delete 🗑️</button>`}
             </div>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } else {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--danger);">Failed to load user list.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--danger);">' + escapeHtml(data.error || 'Failed to load user list.') + '</td></tr>';
     }
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--danger);">Network error loading users.</td></tr>';
+    console.error('loadUsers error:', err);
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--danger);">Error loading users: ${escapeHtml(err.message || 'Unknown network error')}</td></tr>`;
   }
 }
 
@@ -970,7 +1196,7 @@ async function syncUsersToSheet() {
 
   const token = localStorage.getItem('skillversity_token');
   if (!token) {
-    showToast('Authentication required. Please log in as Admin first.', 'error');
+    showToast('Authentication required. Please log in as pladmin first.', 'error');
     return;
   }
 
@@ -1015,6 +1241,8 @@ async function syncUsersToSheet() {
 function openCreateUserModal() {
   const form = document.getElementById('createUserForm');
   if (form) form.reset();
+  const passInput = document.getElementById('new-password');
+  if (passInput) passInput.type = 'text';
   openModal('createUserModal');
 }
 
@@ -1029,7 +1257,12 @@ async function openEditUserModal(userId) {
       const u = data.user;
       document.getElementById('edit-user-id').value = u.id;
       document.getElementById('edit-user-username').value = u.username;
-      document.getElementById('edit-user-password').value = '';
+      // Show user's current password directly in the input
+      const passInput = document.getElementById('edit-user-password');
+      if (passInput) {
+        passInput.value = u.password || 'pladmin123';
+        passInput.type = 'text';
+      }
       document.getElementById('edit-user-fullname').value = u.fullName || u.username;
       document.getElementById('edit-user-email').value = u.email || '';
       document.getElementById('edit-user-phone').value = u.phone || '';
@@ -1060,6 +1293,10 @@ async function saveUserUpdate(e) {
 
   const pass = document.getElementById('edit-user-password').value;
   if (pass && pass.trim().length > 0) {
+    if (pass.trim().length < 4) {
+      showToast('Password must be at least 4 characters long.', 'error');
+      return;
+    }
     updateData.password = pass.trim();
   }
 
@@ -1075,7 +1312,7 @@ async function saveUserUpdate(e) {
 
     const result = await res.json();
     if (res.ok && result.success) {
-      showToast(`User '${result.user.username}' updated successfully!`, 'success');
+      showToast(`User '${result.user.username}' password and account updated successfully!`, 'success');
       closeModal('editUserModal');
       await loadUsers();
     } else {
@@ -1092,13 +1329,18 @@ async function saveNewUser(e) {
 
   const userData = {
     username: document.getElementById('new-username').value.trim(),
-    password: document.getElementById('new-password').value,
+    password: document.getElementById('new-password').value.trim(),
     fullName: document.getElementById('new-fullname').value.trim(),
     email: document.getElementById('new-email').value.trim(),
     phone: document.getElementById('new-phone').value.trim(),
     role: document.getElementById('new-role').value,
     department: document.getElementById('new-dept').value
   };
+
+  if (userData.password.length < 4) {
+    showToast('Password must be at least 4 characters long.', 'error');
+    return;
+  }
 
   try {
     const res = await fetch('/api/users', {
@@ -1124,6 +1366,11 @@ async function saveNewUser(e) {
 }
 
 async function deleteUser(userId, username) {
+  if (username && username.toLowerCase() === 'pladmin') {
+    showToast('Cannot delete the primary "pladmin" account.', 'error');
+    return;
+  }
+
   if (!confirm(`Are you sure you want to delete user account '${username}'?`)) {
     return;
   }
@@ -1148,8 +1395,79 @@ async function deleteUser(userId, username) {
   }
 }
 
-// Ticket Deletion Functions
+// Password Visibility & Clipboard Helpers
+function togglePasswordRow(userId) {
+  const el = document.getElementById(`pwd-val-${userId}`);
+  if (!el) return;
+  const actual = el.getAttribute('data-password') || '';
+  const isMasked = el.getAttribute('data-masked') === 'true';
+
+  if (isMasked) {
+    el.textContent = actual;
+    el.setAttribute('data-masked', 'false');
+  } else {
+    el.textContent = '••••••••';
+    el.setAttribute('data-masked', 'true');
+  }
+}
+
+function copyPasswordToClipboard(pwd) {
+  if (!pwd) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pwd).then(() => {
+      showToast('Password copied to clipboard! 📋', 'success');
+    }).catch(() => fallbackCopy(pwd));
+  } else {
+    fallbackCopy(pwd);
+  }
+}
+
+function fallbackCopy(text) {
+  const input = document.createElement('input');
+  input.value = text;
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand('copy');
+  document.body.removeChild(input);
+  showToast('Password copied to clipboard! 📋', 'success');
+}
+
+function togglePasswordInput(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    if (btn) btn.textContent = '👁️';
+  }
+}
+
+function copyPasswordFromInput(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input || !input.value) {
+    showToast('No password to copy', 'error');
+    return;
+  }
+  copyPasswordToClipboard(input.value);
+}
+
+// Ticket Deletion Functions (Restricted strictly to Superadmin)
 async function deleteTicketRecord(ticketId) {
+  const isSuperadmin = window.currentAdminUser && (
+    (window.currentAdminUser.username && window.currentAdminUser.username.toLowerCase() === 'pladmin') ||
+    (window.currentAdminUser.role && (
+      window.currentAdminUser.role.toLowerCase() === 'superadmin' ||
+      window.currentAdminUser.role.toLowerCase() === 'super admin'
+    ))
+  );
+
+  if (!isSuperadmin) {
+    showToast('Access Denied: Only Superadmin can delete tickets.', 'error');
+    return;
+  }
+
   if (!confirm(`Are you sure you want to permanently delete Ticket #${ticketId}? This action cannot be undone.`)) {
     return;
   }
@@ -1183,24 +1501,29 @@ function deleteTicketFromModal() {
 
 // Sync Column Headers & All Tickets/Users with Google Sheet and reload data
 async function syncWithGoogleSheet() {
-  const btn = document.getElementById('btn-sync-sheet');
-  const originalText = btn ? btn.innerHTML : 'Sync with Sheet 📊';
+  const btn = document.getElementById('btn-sync-live') || document.getElementById('btn-sync-sheet');
+  const originalText = btn ? btn.innerHTML : '📊 Sync with Live';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = 'Syncing... ⏳';
+    btn.innerHTML = '<span class="refresh-icon spinning" style="font-size:0.9rem; margin-right:4px;">🔄</span> Syncing...';
   }
 
-  showToast('Synchronizing and loading data from Google Sheet...', 'info');
+  showToast('Synchronizing with Google Sheet live data...', 'info');
+
+  const token = localStorage.getItem('skillversity_token');
 
   try {
     const res = await fetch('/api/complaints/sync-sheet', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     });
 
     const result = await res.json();
     if (res.ok && result.success) {
-      showToast(result.message || 'Google Sheet synchronized and data loaded!', 'success');
+      showToast(result.message || 'Live data synchronized successfully!', 'success');
       await loadDashboard();
     } else {
       showToast(result.message || result.error || 'Failed to sync with Google Sheet', 'error');

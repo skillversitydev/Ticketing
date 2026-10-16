@@ -34,14 +34,14 @@ body {
 
 /* Header & Navbar */
 .navbar {
-  background-color: #0f172a;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #0f172a;
   padding: 0.85rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: var(--shadow-md);
-  border-bottom: 3px solid var(--primary);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .navbar .brand {
@@ -52,31 +52,32 @@ body {
 }
 
 .navbar .brand-logo {
-  max-height: 38px;
+  max-height: 44px;
   object-fit: contain;
-  background: white;
-  padding: 4px 8px;
-  border-radius: 6px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .nav-links {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
 .nav-link {
-  color: #cbd5e1;
+  color: #475569;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.9rem;
   padding: 6px 14px;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .nav-link:hover, .nav-link.active {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary);
+  background-color: #eff6ff;
 }
 
 .nav-btn {
@@ -89,10 +90,12 @@ body {
   font-size: 0.9rem;
   border: none;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .nav-btn:hover {
   background-color: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 /* Layout Container */
@@ -320,24 +323,217 @@ textarea.form-control {
 
 .stat-card {
   background: white;
-  padding: 20px;
+  padding: 18px 20px;
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stat-number {
   font-size: 2rem;
   font-weight: 800;
   color: var(--text-main);
+  line-height: 1.1;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  margin-top: 4px;
+  letter-spacing: 0.3px;
+  margin-top: 6px;
+}
+
+/* ========================================================
+   Dashboard Toolbar & Filter Controls Alignment
+   ======================================================== */
+.dash-toolbar-card {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.dash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  flex: 1 1 540px;
+}
+
+.dash-control {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.dash-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.dash-search-input {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.dash-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 11px 9px;
+  padding-right: 28px !important;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dash-select-status {
+  flex: 0 1 145px;
+  min-width: 142px;
+}
+
+.dash-select-priority {
+  flex: 0 1 140px;
+  min-width: 138px;
+}
+
+.dash-select-dept {
+  flex: 0 1 175px;
+  min-width: 168px;
+}
+
+.dash-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.dash-btn {
+  height: 38px;
+  padding: 0 13px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.dash-btn-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+.dash-btn-primary:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+.dash-btn-sync {
+  background-color: #059669;
+  color: #ffffff;
+}
+.dash-btn-sync:hover {
+  background-color: #047857;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+  transform: translateY(-1px);
+}
+
+.dash-btn-users {
+  background-color: #7c3aed;
+  color: #ffffff;
+}
+.dash-btn-users:hover {
+  background-color: #6d28d9;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25);
+  transform: translateY(-1px);
+}
+
+.dash-btn-outline {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+.dash-btn-outline:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Action buttons in Table Rows */
+.action-btn-group {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.action-btn-edit {
+  color: #2563eb;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+.action-btn-edit:hover {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.action-btn-delete {
+  color: #ef4444;
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+.action-btn-delete:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
 }
 
 /* Tables */
@@ -346,18 +542,36 @@ textarea.form-control {
   overflow-x: auto;
 }
 
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   text-align: left;
 }
 
 .table th {
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   padding: 12px 14px;
   font-weight: 700;
-  color: #475569;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
   border-bottom: 2px solid var(--border-color);
   white-space: nowrap;
 }
@@ -455,4 +669,197 @@ textarea.form-control {
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* ========================================================
+   Portal Header Banner & Responsive Ticket Reference
+   ======================================================== */
+.portal-header-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 18px 22px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  border-left: 5px solid var(--primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.portal-header-info {
+  flex: 1;
+}
+
+.portal-header-info h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.portal-header-info p {
+  margin: 4px 0 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.portal-header-refbox {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 220px;
+}
+
+.portal-ref-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.portal-ticket-id {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #2563eb;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.portal-ticket-ref {
+  font-size: 0.75rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.portal-ticket-date {
+  font-size: 0.78rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+/* Refresh Button with Larger Icon */
+.btn-refresh-ticket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.btn-refresh-ticket:hover {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #1e1b4b;
+  transform: translateY(-1px);
+}
+
+.btn-refresh-ticket:active {
+  transform: translateY(0);
+}
+
+.refresh-icon {
+  font-size: 1.15rem; /* Larger, prominent refresh icon */
+  display: inline-block;
+  line-height: 1;
+}
+
+.refresh-icon.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================================
+   Mobile View Alignment & Responsiveness (max-width: 768px)
+   ======================================================== */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+  
+  .navbar .brand-logo {
+    max-height: 32px;
+  }
+  
+  .container {
+    width: 100%;
+    padding: 0 10px;
+    margin: 12px auto;
+  }
+  
+  .card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .portal-header-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .portal-header-info {
+    text-align: left;
+  }
+
+  .portal-header-info h3 {
+    font-size: 1.15rem;
+  }
+
+  .portal-header-refbox {
+    text-align: left;
+    align-items: stretch;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .portal-ref-top-row {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .portal-ticket-id {
+    font-size: 1.35rem;
+    margin: 2px 0;
+  }
+
+  .portal-ticket-ref {
+    font-size: 0.8rem;
+  }
+
+  .portal-ticket-date {
+    font-size: 0.8rem;
+    margin-top: 3px;
+  }
+
+  .btn-refresh-ticket {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .btn-refresh-ticket .refresh-icon {
+    font-size: 1.25rem;
+  }
 }

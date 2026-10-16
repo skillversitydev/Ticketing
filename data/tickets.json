@@ -23,7 +23,39 @@
     "userConfirmed": true,
     "auditTrail": [
       {
-        "timestamp": "2026-10-15T10:52:46.617Z",
+        "timestamp": "2026-10-16T04:36:45.482Z",
+        "updatedBy": "Google Sheet Sync",
+        "changes": [
+          "Synced from Google Sheet"
+        ]
+      }
+    ]
+  },
+  {
+    "ticketId": "TK-2026-1002",
+    "date": "16/10/2026, 09:55:13 am",
+    "createdAt": "16/10/2026, 09:55:13 am",
+    "userName": "TEST",
+    "userEmail": "TEST@GMAIL.COM",
+    "userPhone": "6789098765",
+    "contactNumber": "6789098765",
+    "department": "STUDENT SUCCESS",
+    "category": "IT Hardware & Devices",
+    "subCategory": "Headset / Webcam / Audio-Visual",
+    "subject": "sd",
+    "description": "sadasdsd",
+    "impact": "Medium",
+    "urgency": "Medium",
+    "priority": "Medium",
+    "status": "Closed",
+    "assignedTo": "USER",
+    "vendorTicketRef": "N/A",
+    "troubleshootingNotes": "",
+    "attachments": [],
+    "userConfirmed": true,
+    "auditTrail": [
+      {
+        "timestamp": "2026-10-16T04:36:45.482Z",
         "updatedBy": "Google Sheet Sync",
         "changes": [
           "Synced from Google Sheet"

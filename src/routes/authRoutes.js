@@ -92,4 +92,4 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ success: false, error: 'Authentication required. Please log in.' });
 }
 
-module.exports = { router, requireAuth };
+module.exports = { router, requireAuth, verifyToken };

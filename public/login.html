@@ -2,94 +2,307 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Admin Login - Skillversity Support Portal</title>
   <link rel="icon" type="image/png" href="images/skillversity-logo.png">
   <link rel="shortcut icon" href="images/skillversity-logo.png">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=1.1.0">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 20px 16px;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      overflow-y: auto;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      margin: auto;
     }
     .login-card {
       background: #ffffff;
-      border-radius: 12px;
-      padding: 36px 30px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      border-radius: 14px;
+      padding: 34px 28px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .brand-header {
       text-align: center;
       margin-bottom: 24px;
     }
     .brand-header img {
-      height: 48px;
+      max-height: 48px;
+      max-width: 180px;
       object-fit: contain;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .brand-header h2 {
-      font-size: 1.25rem;
-      color: #1e293b;
-      margin-top: 4px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
     }
     .brand-header p {
       font-size: 0.85rem;
       color: #64748b;
+      margin-top: 4px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background-color: #ffffff;
+      color: var(--text-main);
+      box-sizing: border-box;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-wrapper .form-input {
+      padding-right: 44px;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 36px;
+      width: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      border-radius: 6px;
+      color: #64748b;
+      transition: background 0.15s;
+    }
+    .password-toggle-btn:hover {
+      background: #f1f5f9;
+    }
+    .login-error-alert {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.4;
+    }
+    .btn-login {
+      width: 100%;
+      height: 46px;
+      background-color: #2563eb;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+      transition: background-color 0.15s, transform 0.1s;
+    }
+    .btn-login:hover {
+      background-color: #1d4ed8;
+    }
+    .btn-login:active {
+      transform: scale(0.99);
+    }
+    .btn-login:disabled {
+      background-color: #93c5fd;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .back-link-wrapper {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .back-link {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+      .login-card {
+        padding: 24px 18px;
+        border-radius: 12px;
+      }
+      .brand-header {
+        margin-bottom: 20px;
+      }
+      .brand-header img {
+        max-height: 40px;
+      }
+      .brand-header h2 {
+        font-size: 1.18rem;
+      }
+      .form-input {
+        font-size: 16px; /* Prevents auto-zoom on iOS */
+        height: 44px;
+      }
+      .btn-login {
+        height: 46px;
+        font-size: 0.92rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <div class="login-card">
-    <div class="brand-header">
-      <img src="images/skillversity-logo.png" alt="Skillversity Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'40\' viewBox=\'0 0 200 40\'><text x=\'10\' y=\'30\' font-family=\'Arial\' font-size=\'22\' font-weight=\'bold\' fill=\'%232563eb\'>Skillversity</text></svg>'">
-      <h2>Admin Portal Login</h2>
-      <p>IT Support Management System</p>
-    </div>
-
-    <form id="loginForm" onsubmit="handleLogin(event)">
-      <div class="form-group">
-        <label class="form-label" for="username">Username</label>
-        <input type="text" id="username" class="form-control" placeholder="Enter admin username" required>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="brand-header">
+        <img src="images/skillversity-logo.png" alt="Skillversity Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'40\' viewBox=\'0 0 200 40\'><text x=\'10\' y=\'30\' font-family=\'Arial\' font-size=\'22\' font-weight=\'bold\' fill=\'%232563eb\'>Skillversity</text></svg>'">
+        <h2>Admin Portal Login</h2>
+        <p>IT Support Management System</p>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="password">Password</label>
-        <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input 
+            type="text" 
+            id="username" 
+            name="username"
+            class="form-input" 
+            placeholder="Enter admin username" 
+            required
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            autocomplete="username"
+            inputmode="text"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="password-wrapper">
+            <input 
+              type="password" 
+              id="password" 
+              name="password"
+              class="form-input" 
+              placeholder="Enter password" 
+              required
+              autocomplete="current-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle-btn" 
+              id="pwdToggleBtn"
+              onclick="togglePasswordVisibility()" 
+              title="Show / Hide Password"
+              aria-label="Toggle password visibility"
+            >👁️</button>
+          </div>
+        </div>
+
+        <div id="login-error" class="login-error-alert">
+          <span>⚠️</span>
+          <span id="login-error-text"></span>
+        </div>
+
+        <button type="submit" id="loginBtn" class="btn-login">
+          🔐 Login to Dashboard
+        </button>
+      </form>
+
+      <div class="back-link-wrapper">
+        <a href="index.html" class="back-link">&larr; Back to Employee Support Portal</a>
       </div>
-
-      <div id="login-error" style="display: none; color: var(--danger); font-size: 0.85rem; margin-bottom: 14px; text-align: center;"></div>
-
-      <button type="submit" id="loginBtn" class="btn btn-primary btn-full">
-        🔐 Login to Dashboard
-      </button>
-    </form>
-
-    <div style="margin-top: 20px; text-align: center;">
-      <a href="index.html" style="font-size: 0.85rem; color: var(--primary); text-decoration: none;">&larr; Back to Employee Support Portal</a>
     </div>
   </div>
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=1.1.0"></script>
   <script>
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById('password');
+      const toggleBtn = document.getElementById('pwdToggleBtn');
+      if (!pwdInput) return;
+
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+      } else {
+        pwdInput.type = 'password';
+        toggleBtn.textContent = '👁️';
+      }
+    }
+
     async function handleLogin(e) {
       e.preventDefault();
       const loginBtn = document.getElementById('loginBtn');
-      const errEl = document.getElementById('login-error');
+      const errBox = document.getElementById('login-error');
+      const errText = document.getElementById('login-error-text');
       
       loginBtn.disabled = true;
       loginBtn.textContent = 'Authenticating...';
-      errEl.style.display = 'none';
+      errBox.style.display = 'none';
 
-      const username = document.getElementById('username').value;
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
 
       try {
@@ -105,14 +318,14 @@
           showToast('Login successful! Redirecting...', 'success');
           setTimeout(() => {
             window.location.href = 'dashboard.html';
-          }, 1000);
+          }, 800);
         } else {
-          errEl.textContent = data.error || 'Invalid credentials';
-          errEl.style.display = 'block';
+          errText.textContent = data.error || 'Invalid credentials';
+          errBox.style.display = 'flex';
         }
       } catch (err) {
-        errEl.textContent = 'Network error during login.';
-        errEl.style.display = 'block';
+        errText.textContent = 'Network error during login. Please check connection.';
+        errBox.style.display = 'flex';
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = '🔐 Login to Dashboard';

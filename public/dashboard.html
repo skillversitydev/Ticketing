@@ -6,7 +6,7 @@
   <title>Skillversity - Admin Support Dashboard</title>
   <link rel="icon" type="image/png" href="images/skillversity-logo.png">
   <link rel="shortcut icon" href="images/skillversity-logo.png">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=1.1.2">
   <script>
     // Immediate auth protection check
     const token = localStorage.getItem('skillversity_token');
@@ -37,7 +37,7 @@
       <img src="images/skillversity-logo.png" alt="Skillversity Logo" class="brand-logo">
     </a>
     <div class="nav-links">
-      <span id="current-user-badge" style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; padding: 0 4px;">👤 Admin</span>
+      <span id="current-user-badge" style="color: #334155; font-size: 0.85rem; font-weight: 700; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">👤 Admin</span>
       <a href="index.html" class="nav-link" target="_blank">Employee Form ↗</a>
       <a href="dashboard.html" class="nav-link active">Admin Dashboard</a>
       <button class="nav-btn" style="background-color: var(--success);" onclick="exportToCSV()">Export CSV</button>
@@ -49,7 +49,7 @@
     
     <!-- KPI Counters (Clickable Tiles) -->
     <div class="stats-grid">
-      <div class="stat-card" id="tile-all" onclick="filterByStatCard('')" title="Click to view all tickets">
+      <div class="stat-card" id="tile-all" style="border-left: 4px solid #64748b;" onclick="filterByStatCard('')" title="Click to view all tickets">
         <div class="stat-number" id="stat-total">0</div>
         <div class="stat-label">Total Support Tickets</div>
       </div>
@@ -71,14 +71,14 @@
       </div>
     </div>
 
-    <!-- Filters Toolbar -->
-    <div class="card" style="padding: 16px 20px;">
-      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+    <!-- Filters & Actions Toolbar -->
+    <div class="card dash-toolbar-card">
+      <div class="dash-toolbar">
         
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 280px;">
-          <input type="text" id="dash-search" class="form-control" style="flex: 1 1 180px; min-width: 160px;" placeholder="Search ticket, name, keyword..." onkeyup="filterDashboard()">
+        <div class="dash-filter-group">
+          <input type="text" id="dash-search" class="dash-control dash-search-input" placeholder="🔍 Search ticket, name, keyword..." onkeyup="filterDashboard()">
           
-          <select id="dash-status" class="form-select" style="flex: 0 1 130px; min-width: 120px;" onchange="filterDashboard()">
+          <select id="dash-status" class="dash-control dash-select dash-select-status" onchange="filterDashboard()">
             <option value="">All Statuses</option>
             <option value="Open">Open</option>
             <option value="In Progress">In Progress</option>
@@ -88,7 +88,7 @@
             <option value="Closed">Closed</option>
           </select>
 
-          <select id="dash-priority" class="form-select" style="flex: 0 1 125px; min-width: 115px;" onchange="filterDashboard()">
+          <select id="dash-priority" class="dash-control dash-select dash-select-priority" onchange="filterDashboard()">
             <option value="">All Priorities</option>
             <option value="Critical">Critical</option>
             <option value="High">High</option>
@@ -96,7 +96,7 @@
             <option value="Low">Low</option>
           </select>
 
-          <select id="dash-department" class="form-select" style="flex: 0 1 155px; min-width: 140px;" onchange="filterDashboard()">
+          <select id="dash-department" class="dash-control dash-select dash-select-dept" onchange="filterDashboard()">
             <option value="">All Departments</option>
             <option value="ADMINISTRATION">ADMINISTRATION</option>
             <option value="ACADEMIC OPERATIONS">ACADEMIC OPERATIONS</option>
@@ -111,12 +111,22 @@
           </select>
         </div>
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <button class="btn btn-primary btn-sm" style="background-color: #2563eb; border: none; white-space: nowrap;" onclick="openCreateTicketModal()">➕ Log New Ticket</button>
-          <button class="btn btn-primary btn-sm" style="background-color: #059669; border: none; white-space: nowrap;" id="btn-sync-sheet" onclick="syncWithGoogleSheet()">Sync with Sheet 📊</button>
-          <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6; border: none; white-space: nowrap;" onclick="openUserManagementModal()">User Management 👥</button>
-          <button class="btn btn-outline btn-sm" style="white-space: nowrap;" onclick="openSettingsModal()">⚙️ Settings</button>
-          <button class="btn btn-outline btn-sm" style="white-space: nowrap;" onclick="loadDashboard()">Refresh</button>
+        <div class="dash-btn-group">
+          <button class="dash-btn dash-btn-primary" id="btn-log-ticket" onclick="openCreateTicketModal()">
+            ➕ Log New Ticket
+          </button>
+          <button class="dash-btn dash-btn-sync" id="btn-sync-live" style="display: none;" onclick="syncWithGoogleSheet()" title="Sync with Google Sheet live data">
+            📊 Sync with Live
+          </button>
+          <button class="dash-btn dash-btn-users" id="btn-user-mgmt" style="display: none;" onclick="openUserManagementModal()">
+            👥 User Management
+          </button>
+          <button class="dash-btn dash-btn-outline" id="btn-system-settings" style="display: none;" onclick="openSettingsModal()">
+            ⚙️ Settings
+          </button>
+          <button class="dash-btn dash-btn-outline" id="btn-refresh" onclick="handleRefreshClick()" title="Refresh ticket list">
+            🔄 Refresh
+          </button>
         </div>
 
       </div>
@@ -133,15 +143,15 @@
         <table class="table">
           <thead>
             <tr>
-              <th style="white-space: nowrap;">Ticket ID</th>
-              <th style="white-space: nowrap;">Date</th>
-              <th style="white-space: nowrap;">Employee</th>
-              <th style="white-space: nowrap;">Dept</th>
-              <th style="white-space: nowrap;">Category</th>
-              <th style="white-space: nowrap;">Priority</th>
-              <th style="white-space: nowrap;">Status</th>
-              <th style="white-space: nowrap;">Assigned To</th>
-              <th style="white-space: nowrap; text-align: center;">Actions</th>
+              <th style="white-space: nowrap; width: 110px;">Ticket ID</th>
+              <th style="white-space: nowrap; width: 115px;">Date</th>
+              <th style="white-space: nowrap; min-width: 170px;">Employee</th>
+              <th style="white-space: nowrap; width: 135px;">Dept</th>
+              <th style="white-space: nowrap; min-width: 150px;">Category</th>
+              <th style="white-space: nowrap; text-align: center; width: 95px;">Priority</th>
+              <th style="white-space: nowrap; text-align: center; width: 110px;">Status</th>
+              <th style="white-space: nowrap; min-width: 135px;">Assigned To</th>
+              <th style="white-space: nowrap; text-align: center; width: 150px;">Actions</th>
             </tr>
           </thead>
           <tbody id="tickets-table-body">
@@ -272,6 +282,10 @@
 
       <form id="editTicketForm" onsubmit="saveTicketUpdate(event)">
         <input type="hidden" id="edit-ticket-id">
+
+        <div id="ticket-viewonly-banner" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px;">
+          👁️ <strong>Read-Only Mode:</strong> Logged in as <strong>IT Support</strong>. You have view-only access to ticket records.
+        </div>
         
         <div style="background: #f8fafc; padding: 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
@@ -331,10 +345,10 @@
         <div id="edit-audit-log" style="font-size: 0.8rem; color: #64748b; margin-bottom: 16px;"></div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-          <button type="button" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteTicketFromModal()">Delete Ticket 🗑️</button>
-          <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn btn-outline" onclick="closeModal('editTicketModal')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save & Sync Update</button>
+          <button type="button" id="btn-delete-ticket-modal" class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5; display: none;" onclick="deleteTicketFromModal()">Delete Ticket 🗑️</button>
+          <div style="display: flex; gap: 12px; margin-left: auto;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('editTicketModal')">Close</button>
+            <button type="submit" id="btn-save-ticket-update" class="btn btn-primary">Save & Sync Update</button>
           </div>
         </div>
       </form>
@@ -369,7 +383,7 @@
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn btn-outline btn-sm" id="btn-sync-users-modal" onclick="syncUsersToSheet()" style="border-color: #059669; color: #059669; font-weight: 600;">
-            📊 Sync with Sheet
+            📊 Sync with Live
           </button>
           <button class="btn btn-primary btn-sm" style="background-color: #8b5cf6;" onclick="openCreateUserModal()">
             ➕ Create New User
@@ -383,6 +397,7 @@
             <tr>
               <th style="white-space: nowrap;">Username</th>
               <th style="white-space: nowrap;">Full Name</th>
+              <th style="white-space: nowrap; background: #eef2ff; color: #4338ca;">🔑 Current Password</th>
               <th>Email</th>
               <th style="white-space: nowrap;">Phone</th>
               <th style="white-space: nowrap;">Role</th>
@@ -392,7 +407,7 @@
             </tr>
           </thead>
           <tbody id="users-table-body">
-            <tr><td colspan="8" style="text-align: center; padding: 20px;">Loading users...</td></tr>
+            <tr><td colspan="9" style="text-align: center; padding: 20px;">Loading users...</td></tr>
           </tbody>
         </table>
       </div>
@@ -419,7 +434,10 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="new-password">Password <span class="required">*</span></label>
-            <input type="password" id="new-password" class="form-control" placeholder="Minimum 4 characters" required minlength="4">
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="new-password" class="form-control" style="font-family: monospace; font-weight: 600;" placeholder="Minimum 4 characters" required minlength="4">
+              <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordInput('new-password', this)" title="Show/Hide Password" style="padding: 0 10px;">👁️</button>
+            </div>
           </div>
         </div>
 
@@ -443,9 +461,8 @@
           <div class="form-group">
             <label class="form-label" for="new-role">System Role</label>
             <select id="new-role" class="form-select" required>
-              <option value="IT Tech">IT Tech / Engineer</option>
-              <option value="Support Agent">Support Agent</option>
-              <option value="Admin">Admin</option>
+              <option value="IT Support">IT Support (Assigned tickets only)</option>
+              <option value="Admin">Admin (All tickets)</option>
             </select>
           </div>
           <div class="form-group">
@@ -485,8 +502,13 @@
             <input type="text" id="edit-user-username" class="form-control" readonly style="background-color: #f1f5f9; cursor: not-allowed;">
           </div>
           <div class="form-group">
-            <label class="form-label" for="edit-user-password">New Password (Optional)</label>
-            <input type="password" id="edit-user-password" class="form-control" placeholder="Leave blank to keep current">
+            <label class="form-label" for="edit-user-password">Current / New Password <span class="required">*</span></label>
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="edit-user-password" class="form-control" style="font-family: monospace; font-weight: 600;" placeholder="Enter password" required minlength="4">
+              <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordInput('edit-user-password', this)" title="Show/Hide Password" style="padding: 0 10px;">👁️</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="copyPasswordFromInput('edit-user-password')" title="Copy Password" style="padding: 0 10px;">📋</button>
+            </div>
+            <small style="color: #64748b; font-size: 0.78rem; margin-top: 3px; display: block;">Displays user's current password. Edit this field directly to set a new password.</small>
           </div>
         </div>
 
@@ -510,10 +532,9 @@
           <div class="form-group">
             <label class="form-label" for="edit-user-role">System Role</label>
             <select id="edit-user-role" class="form-select" required>
-              <option value="IT Tech">IT Tech / Engineer</option>
-              <option value="Support Agent">Support Agent</option>
-              <option value="Admin">Admin</option>
-              <option value="Super Admin">Super Admin</option>
+              <option value="IT Support">IT Support (Assigned tickets only)</option>
+              <option value="Admin">Admin (All tickets)</option>
+              <option value="Superadmin">Superadmin (pladmin only)</option>
             </select>
           </div>
           <div class="form-group">
@@ -589,7 +610,7 @@
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="js/app.js?v=1.0.3"></script>
+  <script src="js/app.js?v=1.1.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       autoRefreshDashboardOnLoad();

@@ -3,15 +3,43 @@ const router = express.Router();
 const userService = require('../services/userService');
 const sheetsService = require('../services/sheetsService');
 const storageService = require('../services/storageService');
+const settingsService = require('../services/settingsService');
 const { requireAuth } = require('./authRoutes');
 
 // Protect all user management endpoints with authentication
 router.use(requireAuth);
 
-// GET /api/users - Fetch list of registered admin/tech users
+// STRICT ACCESS CONTROL: Only 'pladmin' Superadmin has access to User Management & password changes
+function requirePladmin(req, res, next) {
+  const currentUser = req.currentUser;
+  const isSuperadmin = currentUser && (
+    (currentUser.username && currentUser.username.toLowerCase() === 'pladmin') ||
+    currentUser.role === 'Superadmin' ||
+    currentUser.role === 'Super Admin'
+  );
+
+  if (!isSuperadmin) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access Restricted: Only "pladmin" Superadmin has access to User Management and password modification.'
+    });
+  }
+
+  next();
+}
+
+// Enforce requirePladmin across all user management routes
+router.use(requirePladmin);
+
+// GET /api/users - Fetch list of registered admin/tech users with current password visible to pladmin
 router.get('/', (req, res) => {
   try {
-    const users = userService.getAllUsers();
+    const isSuperadmin = req.currentUser && (
+      req.currentUser.username.toLowerCase() === 'pladmin' ||
+      req.currentUser.role === 'Superadmin' ||
+      req.currentUser.role === 'Super Admin'
+    );
+    const users = userService.getAllUsers(isSuperadmin);
     return res.json({
       success: true,
       count: users.length,
@@ -26,7 +54,7 @@ router.get('/', (req, res) => {
   }
 });
 
-// POST /api/users - Create a new user
+// POST /api/users - Create a new user (Restricted to pladmin)
 router.post('/', (req, res) => {
   try {
     const { username, password, fullName, email, phone, role, department } = req.body;
@@ -45,7 +73,7 @@ router.post('/', (req, res) => {
       });
     }
 
-    const createdBy = req.currentUser ? req.currentUser.username : 'Admin';
+    const createdBy = req.currentUser ? req.currentUser.username : 'pladmin';
     const user = userService.createUser({
       username,
       password,
@@ -74,10 +102,14 @@ router.post('/', (req, res) => {
   }
 });
 
-// GET /api/users/:id - Get single user
+// GET /api/users/:id - Get single user with current password
 router.get('/:id', (req, res) => {
   try {
-    const user = userService.getUserById(req.params.id);
+    const isPladmin = req.currentUser && (
+      req.currentUser.username.toLowerCase() === 'pladmin' ||
+      req.currentUser.role === 'Super Admin'
+    );
+    const user = userService.getUserById(req.params.id, isPladmin);
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
     return res.json({ success: true, user });
   } catch (error) {
@@ -85,11 +117,15 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// PATCH /api/users/:id - Update user account
+// PATCH /api/users/:id - Update user account / change password (Restricted to pladmin)
 router.patch('/:id', (req, res) => {
   try {
     const userId = req.params.id;
-    const updatedUser = userService.updateUser(userId, req.body);
+    const isPladmin = req.currentUser && (
+      req.currentUser.username.toLowerCase() === 'pladmin' ||
+      req.currentUser.role === 'Super Admin'
+    );
+    const updatedUser = userService.updateUser(userId, req.body, isPladmin);
 
     // Sync updated user to Google Sheet Users tab
     sheetsService.updateUser(updatedUser).catch(err => console.warn('User sheet update err:', err.message));
@@ -107,11 +143,11 @@ router.patch('/:id', (req, res) => {
   }
 });
 
-// DELETE /api/users/:id - Delete a user
+// DELETE /api/users/:id - Delete a user (Restricted to pladmin)
 router.delete('/:id', (req, res) => {
   try {
     const userId = req.params.id;
-    const targetUser = userService.getUserById(userId);
+    const targetUser = userService.getUserById(userId, true);
     userService.deleteUser(userId);
 
     if (targetUser) {
@@ -143,19 +179,17 @@ router.post('/sync-sheet', async (req, res) => {
       }
     }
 
-    const allUsers = userService.getAllUsers();
+    const allUsers = userService.getAllUsers(true);
     const result = await sheetsService.syncAllUsers(allUsers);
     return res.json({
       success: true,
-      message: `Successfully loaded & synced ${allUsers.length} user account(s) with Google Sheet!`,
+      message: `Successfully loaded & synced ${allUsers.length} user account(s) with Live database!`,
       result
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Sync failed: ' + error.message });
   }
 });
-
-const settingsService = require('../services/settingsService');
 
 // GET /api/users/settings/config - Retrieve current Google Apps Script URL and Sheet ID
 router.get('/settings/config', (req, res) => {
@@ -189,16 +223,6 @@ router.post('/settings/config', (req, res) => {
 // POST /api/users/settings/reset-ticket-counter - Reset Ticket Sequence (Restricted strictly to pladmin)
 router.post('/settings/reset-ticket-counter', (req, res) => {
   try {
-    const currentUser = req.currentUser;
-    const isPladmin = currentUser && (currentUser.username.toLowerCase() === 'pladmin' || currentUser.role === 'Super Admin');
-
-    if (!isPladmin) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access Restricted: Only the "pladmin" Super Admin can reset ticket numbering sequence.'
-      });
-    }
-
     const startValue = req.body.startValue || 1;
     const nextTicketId = settingsService.resetTicketSequence(startValue);
 
